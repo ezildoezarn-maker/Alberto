@@ -1,0 +1,2642 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel Automático — Megas Express</title>
+<link rel="manifest" href="/manifest.json">
+<style>
+  :root{
+    --bg:#0d1117;
+    --panel:#161b22;
+    --panel2:#1c2230;
+    --line:#262d3a;
+    --green:#2ecc71;
+    --red:#e74c3c;
+    --amber:#f5a623;
+    --text:#e8ecf1;
+    --sub:#8b96a5;
+    --accent:#3ddc84;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    font-family:'Segoe UI',Roboto,-apple-system,sans-serif;
+    color:var(--text);
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    padding:24px 14px 90px;
+  }
+  .wrap{width:100%;max-width:420px;}
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;
+    padding-bottom:14px;border-bottom:1px solid var(--line);margin-bottom:16px;
+  }
+  .topbar h1{font-size:18px;font-weight:600;}
+  .topbar .tag{font-size:11px;color:var(--sub);}
+
+  .nav{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;}
+  .nav a{
+    flex:1;text-align:center;font-size:11px;color:var(--sub);
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:8px 2px;text-decoration:none;min-width:70px;
+  }
+  .nav a.active{color:var(--accent);border-color:var(--accent);}
+
+  .master{
+    background:linear-gradient(160deg,var(--panel2),var(--panel));
+    border:1px solid var(--line);border-radius:16px;padding:18px;
+    display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;
+  }
+  .master .label{font-size:14px;font-weight:600;}
+  .master .sub{font-size:11px;color:var(--sub);margin-top:3px;}
+
+  .switch{
+    width:46px;height:26px;border-radius:14px;background:var(--panel2);
+    position:relative;flex-shrink:0;border:1px solid var(--line);cursor:pointer;
+    transition:background .2s;
+  }
+  .switch::after{
+    content:'';position:absolute;top:2px;left:2px;
+    width:20px;height:20px;border-radius:50%;background:#8b96a5;
+    transition:all .2s;
+  }
+  .switch.on{background:var(--green);border-color:var(--green);}
+  .switch.on::after{left:22px;background:#fff;}
+  .switch.loading{opacity:.5;pointer-events:none;}
+
+  .row-title{font-size:12px;color:var(--sub);margin:4px 2px 8px;}
+
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;}
+  .stat .num{font-size:20px;font-weight:700;}
+  .stat .lbl{font-size:11px;color:var(--sub);margin-top:2px;}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:8px 14px;}
+  .list-item{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:10px 0;border-bottom:1px solid var(--line);font-size:12px;
+  }
+  .list-item:last-child{border-bottom:none;}
+  .list-item .who{font-weight:600;}
+  .list-item .when{color:var(--sub);font-size:11px;margin-top:1px;}
+  .list-item .val{color:var(--green);font-weight:600;white-space:nowrap;}
+  .empty{color:var(--sub);font-size:12px;text-align:center;padding:16px 0;}
+
+  .refresh-note{font-size:10px;color:var(--sub);text-align:center;margin-top:14px;}
+
+  /* ===== Menu lateral (hambúrguer) ===== */
+  .topbar .left{display:flex;align-items:center;gap:12px;}
+  .menu-btn{
+    width:40px;height:40px;border-radius:12px;flex-shrink:0;
+    background:var(--panel);border:1px solid var(--line);color:var(--text);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+    cursor:pointer;-webkit-tap-highlight-color:transparent;
+  }
+  .menu-btn{position:relative;}
+  .dot-sms{position:absolute;top:5px;right:5px;width:10px;height:10px;border-radius:50%;background:var(--amber);border:2px solid var(--panel);}
+  .drawer-item .badge{margin-left:auto;}
+  .conv-row{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;padding:11px 0;background:none;border:0;border-bottom:1px solid var(--line);color:var(--text);text-align:left;font:inherit;font-size:12px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+  .conv-row:last-child{border-bottom:none;}
+  .conv-row .who{font-weight:600;display:flex;align-items:center;gap:6px;}
+  .conv-row .meta{color:var(--sub);font-size:11px;margin-top:1px;max-width:210px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .conv-row .dir{flex:none;text-align:right;font-size:10px;color:var(--sub);display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+  .chat{display:flex;flex-direction:column;gap:8px;max-height:44vh;overflow-y:auto;padding:4px 2px 10px;margin-bottom:6px;}
+  .bol{align-self:flex-start;max-width:84%;padding:8px 10px;border-radius:12px;font-size:13px;line-height:1.4;white-space:pre-wrap;word-break:break-word;background:var(--panel2);border:1px solid var(--line);}
+  .bol.out{align-self:flex-end;border-color:var(--accent);}
+  .bol small{display:block;color:var(--sub);font-size:10px;margin-top:3px;}
+  .btn-voltar{background:none;border:1px solid var(--line);color:var(--text);margin-bottom:10px;}
+  .menu-btn span{display:block;width:18px;height:2px;border-radius:2px;background:var(--text);}
+  .menu-btn:active{background:var(--panel2);}
+  .menu-btn:focus-visible,.drawer-item:focus-visible,.drawer-close:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+
+  .drawer-overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.55);
+    opacity:0;pointer-events:none;transition:opacity .25s;z-index:50;
+  }
+  .drawer-overlay.open{opacity:1;pointer-events:auto;}
+
+  .drawer{
+    position:fixed;top:0;left:0;bottom:0;width:78%;max-width:300px;
+    background:var(--panel);border-right:1px solid var(--line);
+    transform:translateX(-100%);transition:transform .25s ease;z-index:60;
+    display:flex;flex-direction:column;overflow-y:auto;
+    padding:calc(env(safe-area-inset-top,0px) + 20px) 0 calc(env(safe-area-inset-bottom,0px) + 16px);
+  }
+  .drawer.open{transform:translateX(0);}
+  .drawer-head{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:0 18px 16px;border-bottom:1px solid var(--line);margin-bottom:8px;
+  }
+  .drawer-head .name{font-size:16px;font-weight:600;}
+  .drawer-head .name small{display:block;font-size:11px;font-weight:400;color:var(--sub);margin-top:2px;}
+  .drawer-close{
+    width:34px;height:34px;border-radius:10px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--sub);font-size:18px;line-height:1;cursor:pointer;
+  }
+  .drawer-item{
+    display:flex;align-items:center;gap:14px;width:100%;
+    padding:14px 18px;background:none;border:none;color:var(--text);
+    font-size:14px;text-align:left;cursor:pointer;text-decoration:none;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .drawer-item:active{background:var(--panel2);}
+  .drawer-item svg{width:20px;height:20px;flex-shrink:0;stroke:var(--sub);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+  .drawer-foot{margin-top:auto;padding:12px 18px 0;font-size:11px;color:var(--sub);border-top:1px solid var(--line);}
+
+  /* ===== Janelinha "Sobre o app" ===== */
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:70;
+    display:none;align-items:center;justify-content:center;padding:20px;
+  }
+  .modal-overlay.open{display:flex;}
+  .modal{
+    width:100%;max-width:340px;background:var(--panel);border:1px solid var(--line);
+    border-radius:16px;padding:20px;
+  }
+  .modal h2{font-size:16px;margin-bottom:8px;}
+  .modal p{font-size:13px;color:var(--sub);line-height:1.5;margin-bottom:6px;}
+  .modal button{
+    margin-top:14px;width:100%;padding:11px;border-radius:12px;border:1px solid var(--accent);
+    background:none;color:var(--accent);font-size:13px;font-weight:600;cursor:pointer;
+  }
+
+  .toast{
+    position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 24px);
+    transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;
+    background:var(--panel2);border:1px solid var(--line);color:var(--text);
+    font-size:12px;padding:10px 16px;border-radius:12px;z-index:80;
+    transition:all .25s;max-width:90%;text-align:center;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  /* ===== Barra inferior ===== */
+  .bottom-bar{
+    position:fixed;left:0;right:0;bottom:0;z-index:40;
+    display:flex;justify-content:center;
+    background:var(--panel);border-top:1px solid var(--line);
+    padding:6px 8px calc(env(safe-area-inset-bottom,0px) + 6px);
+  }
+  .bottom-bar .inner{display:flex;width:100%;max-width:420px;}
+  .bb-item{
+    flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+    padding:6px 2px;background:none;border:none;color:var(--sub);
+    font-size:10px;cursor:pointer;border-radius:10px;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .bb-item svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+  .bb-item:active{background:var(--panel2);}
+  .bb-item.active{color:var(--accent);}
+  .bb-item:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;}
+
+  /* ===== Painel deslizante de baixo (Velocidade / Telefone / Fila) ===== */
+  .sheet-overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:55;
+    opacity:0;pointer-events:none;transition:opacity .25s;
+  }
+  .sheet-overlay.open{opacity:1;pointer-events:auto;}
+  .sheet{
+    position:fixed;left:0;right:0;bottom:0;z-index:65;
+    max-width:420px;margin:0 auto;max-height:75vh;
+    background:var(--panel);border:1px solid var(--line);border-bottom:none;
+    border-radius:18px 18px 0 0;transform:translateY(100%);transition:transform .25s ease;
+    display:flex;flex-direction:column;
+    padding-bottom:calc(env(safe-area-inset-bottom,0px) + 12px);
+  }
+  .sheet.open{transform:translateY(0);}
+  .sheet-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 10px;}
+  .sheet-head h2{font-size:15px;font-weight:600;}
+  .sheet-head .sub{font-size:11px;color:var(--sub);margin-top:2px;font-weight:400;}
+  .sheet-body{overflow-y:auto;padding:0 14px 8px;}
+  .opt{
+    display:flex;align-items:center;gap:12px;width:100%;text-align:left;
+    background:var(--panel2);border:1px solid var(--line);border-radius:12px;
+    padding:12px 14px;margin-bottom:8px;color:var(--text);font-size:13px;cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .opt .t{font-weight:600;}
+  .opt .d{font-size:11px;color:var(--sub);margin-top:2px;}
+  .opt .radio{width:18px;height:18px;border-radius:50%;border:2px solid var(--sub);flex-shrink:0;position:relative;}
+  .opt.sel{border-color:var(--accent);}
+  .opt.sel .radio{border-color:var(--accent);}
+  .opt.sel .radio::after{content:'';position:absolute;inset:3px;border-radius:50%;background:var(--accent);}
+  .opt .dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-left:auto;background:var(--red);}
+  .opt .dot.ok{background:var(--green);}
+  .opt:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .fila-item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:12px;}
+  .fila-item:last-child{border-bottom:none;}
+  .fila-item .who{font-weight:600;}
+  .fila-item .meta{color:var(--sub);font-size:11px;margin-top:1px;}
+  .badge{font-size:10px;padding:3px 8px;border-radius:8px;white-space:nowrap;border:1px solid var(--line);color:var(--sub);}
+  .badge.env{color:var(--accent);border-color:var(--accent);}
+  .badge.prep{color:var(--amber);border-color:var(--amber);}
+
+  /* ===== Cartão de lucro ===== */
+  .profit{
+    display:block;width:100%;text-align:left;cursor:pointer;color:var(--text);
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:14px;margin-bottom:14px;-webkit-tap-highlight-color:transparent;
+  }
+  .profit:active{background:var(--panel2);}
+  .profit:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .profit .top{display:flex;justify-content:space-between;align-items:baseline;}
+  .profit .lbl{font-size:11px;color:var(--sub);}
+  .profit .hint{font-size:10px;color:var(--sub);}
+  .profit .big{font-size:26px;font-weight:700;margin:4px 0 8px;}
+  .profit .big.pos{color:var(--green);}
+  .profit .big.neg{color:var(--red);}
+  .profit .rows{display:flex;gap:16px;font-size:11px;color:var(--sub);}
+  .profit .rows b{display:block;color:var(--text);font-size:13px;font-weight:600;margin-top:1px;}
+  .field{display:block;margin-bottom:12px;}
+  .field span{display:block;font-size:11px;color:var(--sub);margin-bottom:6px;}
+  .field input{
+    width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--text);font-size:16px;
+  }
+  .field input:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+  .btn-main{
+    width:100%;padding:12px;border-radius:12px;border:1px solid var(--accent);
+    background:none;color:var(--accent);font-size:13px;font-weight:600;cursor:pointer;
+  }
+  .btn-main:disabled{opacity:.5;}
+  .pkg{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);}
+  .pkg .info{font-size:13px;font-weight:600;}
+  .pkg .info small{display:block;font-size:11px;font-weight:400;color:var(--sub);margin-top:2px;}
+  .pkg input{width:96px;padding:9px 10px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--text);font-size:15px;text-align:right;}
+  .pkg input:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+  .pkg.novo input.mb{width:110px;text-align:left;}
+  .sec{font-size:11px;color:var(--sub);margin:14px 0 4px;}
+  .field textarea{
+    width:100%;min-height:150px;padding:12px 14px;border-radius:12px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--text);font-size:14px;font-family:inherit;resize:vertical;
+  }
+  .field textarea:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+  .preview{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:12px 0;font-size:12px;line-height:1.6;}
+  .preview b{font-size:14px;}
+  .preview .warn{color:var(--amber);}
+  details.avancado{margin-top:16px;border-top:1px solid var(--line);padding-top:6px;}
+  details.avancado summary{
+    list-style:none;cursor:pointer;font-size:12px;color:var(--sub);padding:10px 0;
+    display:flex;justify-content:space-between;align-items:center;
+  }
+  details.avancado summary::-webkit-details-marker{display:none;}
+  details.avancado summary::after{content:'▾';}
+  details.avancado[open] summary::after{content:'▴';}
+  .exemplos{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-top:10px;font-size:12px;line-height:1.7;}
+  .exemplos .pos{color:var(--green);}
+  .exemplos .neg{color:var(--red);}
+  button.fila-item{
+    width:100%;background:none;border:none;border-bottom:1px solid var(--line);
+    color:inherit;text-align:left;font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;
+  }
+  button.fila-item:active{background:var(--panel2);}
+  button.fila-item:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;}
+  .btn-main.danger{border-color:var(--red);color:var(--red);}
+  .btn-main.ghost{border-color:var(--line);color:var(--sub);}
+  .btn-main.armado{background:var(--panel2);}
+  .banner{
+    display:flex;align-items:center;gap:10px;width:100%;text-align:left;cursor:pointer;
+    background:rgba(245,166,35,.12);border:1px solid var(--amber);border-radius:14px;
+    padding:12px 14px;margin-bottom:14px;color:var(--text);font-size:13px;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .banner[hidden]{display:none;}
+  .banner b{display:block;}
+  .banner small{display:block;font-size:11px;color:var(--sub);margin-top:2px;}
+  .banner:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .mini{display:flex;align-items:flex-end;gap:5px;height:38px;margin-top:8px;}
+  .mini i{flex:1;background:var(--accent);opacity:.55;border-radius:3px 3px 0 0;min-height:2px;}
+  .mini i.hoje{opacity:1;}
+  .chips{display:flex;gap:8px;margin:0 0 10px;}
+  .chip{
+    flex:1;padding:9px 6px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);
+    color:var(--sub);font-size:12px;cursor:pointer;-webkit-tap-highlight-color:transparent;
+  }
+  .chip.sel{color:var(--accent);border-color:var(--accent);}
+  .chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  svg.grafico{width:100%;height:auto;display:block;}
+  svg.grafico .bar{fill:var(--accent);opacity:.6;}
+  svg.grafico .bar.hoje,svg.grafico .bar.pico{opacity:1;}
+  svg.grafico .bar.pico{fill:var(--green);}
+  svg.grafico .axis{fill:var(--sub);font-size:10px;font-family:inherit;}
+  .lucro{text-align:right;font-weight:600;font-size:13px;white-space:nowrap;}
+  .lucro small{display:block;font-size:10px;font-weight:400;color:var(--sub);margin-top:1px;}
+  .lucro.pos{color:var(--green);}
+  .lucro.neg{color:var(--red);}
+  .btn-row{display:flex;gap:8px;}
+  .btn-row .btn-main{flex:1;}
+  .note{font-size:11px;color:var(--sub);line-height:1.5;margin-top:10px;}
+
+  .inat-item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:12px;}
+  .inat-item:last-child{border-bottom:none;}
+  .inat-item .who{font-weight:600;}
+  .inat-item .meta{color:var(--sub);font-size:11px;margin-top:1px;}
+  .inat-item .tag-dest{color:var(--amber);}
+  .btn-wa{flex:none;background:var(--panel2);border:1px solid var(--accent);color:var(--accent);border-radius:10px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+  .btn-wa:active{background:var(--line);}
+  .btn-wa:disabled{border-color:var(--line);color:var(--sub);cursor:default;}
+
+  .field select{
+    width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--text);font-size:16px;
+  }
+  .field select:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+  .lin2{display:flex;gap:8px;}
+  .lin2 .field{flex:1;margin-bottom:12px;}
+  .lin2 .field.peq{flex:none;width:92px;}
+  .rec-tot{font-size:20px;font-weight:700;margin:2px 0 2px;}
+  .rec-sub{font-size:11px;color:var(--sub);}
+  .pkg .dir{font-size:12px;text-align:right;color:var(--text);}
+  .btn-wa.del{border-color:var(--red);color:var(--red);padding:6px 10px;}
+  .btn-wa.del.armado{background:var(--panel2);}
+
+  .chk{width:22px;height:22px;accent-color:var(--accent);flex:none;}
+  label.inat-item{cursor:pointer;}
+  .sms-prev{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:12px;line-height:1.5;color:var(--text);white-space:pre-wrap;word-break:break-word;margin-bottom:6px;}
+  .sms-cnt{font-size:11px;color:var(--sub);margin:-6px 0 10px;}
+  .sms-cnt.alerta{color:var(--amber);}
+  .field textarea.sms-txt{min-height:92px;}
+  .prog-bar{height:8px;border-radius:6px;background:var(--panel2);border:1px solid var(--line);overflow:hidden;margin:8px 0;}
+  .prog-bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .3s;}
+  .btn-main.danger.solo{margin-top:10px;}
+
+  .toggle-linha{display:flex;align-items:center;gap:10px;font-size:12px;cursor:pointer;margin-top:4px;}
+  @media (prefers-reduced-motion:reduce){
+    .drawer,.drawer-overlay,.toast{transition:none;}
+  }
+</style>
+<script src="/entrar.js"></script>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="topbar">
+    <div class="left">
+      <button class="menu-btn" id="btnMenu" aria-label="Abrir menu" aria-expanded="false" aria-controls="drawer">
+        <span></span><span></span><span></span>
+        <i class="dot-sms" id="dotSms" hidden></i>
+      </button>
+      <h1>Painel Automático</h1>
+    </div>
+    <span class="tag">Megas Express</span>
+  </div>
+
+  <div class="nav">
+    <a href="/index.html" class="active">Painel</a>
+    <a href="/telefones.html">Telefones</a>
+    <a href="/configuracoes.html">Config</a>
+    <a href="/historico.html">Histórico</a>
+    <a href="/pedido.html">Novo Pedido</a>
+  </div>
+
+  <div class="master">
+    <div>
+      <div class="label">Venda Automática</div>
+      <div class="sub" id="txtStatusAuto">carregando…</div>
+    </div>
+    <div class="switch" id="switchAutoVenda"></div>
+  </div>
+
+  <button class="banner" id="bannerSaldo" hidden aria-label="Saldo baixo. Toca para ver os detalhes">
+    <span aria-hidden="true">⚠️</span>
+    <span><b>Saldo baixo</b><small id="txtBannerSaldo"></small></span>
+  </button>
+
+  <div class="stat-grid">
+    <div class="stat"><div class="num" id="txtVendasHoje">—</div><div class="lbl">Vendas hoje</div></div>
+    <div class="stat"><div class="num" id="txtMbHoje">—</div><div class="lbl">MB hoje</div></div>
+    <div class="stat"><div class="num" id="txtSaldoTotal">—</div><div class="lbl">Saldo em carteiras</div></div>
+    <div class="stat"><div class="num" id="txtTelefonesOnline">—</div><div class="lbl">Telefones online</div></div>
+  </div>
+
+  <button class="profit" id="btnLucro" aria-label="Lucro de hoje. Toca para definir o custo">
+    <div class="top"><span class="lbl">Lucro hoje</span><span class="hint" id="txtLucroHint">toca para ajustar</span></div>
+    <div class="big" id="txtLucro">—</div>
+    <div class="rows">
+      <div>Vendido<b id="txtLucroVendido">—</b></div>
+      <div>Custo<b id="txtLucroCusto">—</b></div>
+      <div>Margem<b id="txtLucroMargem">—</b></div>
+    </div>
+  </button>
+
+  <button class="profit" id="btnSemana" aria-label="Vendas dos últimos 7 dias. Toca para ver o gráfico">
+    <div class="top"><span class="lbl">Últimos 7 dias</span><span class="hint">toca para ver o gráfico</span></div>
+    <div class="big" id="txtSemanaTotal" style="font-size:20px">—</div>
+    <div class="mini" id="miniSemana" aria-hidden="true"></div>
+  </button>
+
+  <div class="row-title">Últimos eventos</div>
+  <div class="card">
+    <div id="listEventos"><div class="empty">carregando…</div></div>
+  </div>
+
+  <div class="refresh-note">Atualiza a cada 15s</div>
+</div>
+
+<!-- Menu lateral -->
+<div class="drawer-overlay" id="drawerOverlay"></div>
+<aside class="drawer" id="drawer" aria-hidden="true" aria-label="Menu">
+  <div class="drawer-head">
+    <div class="name">Megas Express<small>Painel Automático</small></div>
+    <button class="drawer-close" id="btnFechar" aria-label="Fechar menu">✕</button>
+  </div>
+
+  <button class="drawer-item" data-acao="tabela">
+    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M9 10v10"/></svg>
+    Tabela de preços
+  </button>
+  <button class="drawer-item" data-acao="alertas">
+    <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+    Alerta de saldo
+  </button>
+  <button class="drawer-item" data-acao="notificacoes">
+    <svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><path d="M4 2C2.8 3.7 2 5.7 2 8"/><path d="M22 8c0-2.3-.8-4.3-2-6"/></svg>
+    Notificações
+  </button>
+  <button class="drawer-item" data-acao="smsat">
+    <svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.6 8.6 0 0 1-3.6-.8L3 21l1.9-5.4A8.4 8.4 0 1 1 21 11.5z"/></svg>
+    Atendimento SMS
+    <span class="badge prep" id="badgeSms" hidden>0</span>
+  </button>
+  <button class="drawer-item" data-acao="inativos">
+    <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M17 11l5 5"/><path d="M22 11l-5 5"/></svg>
+    Clientes inativos
+  </button>
+  <button class="drawer-item" data-acao="recargas">
+    <svg viewBox="0 0 24 24"><rect x="2" y="7" width="18" height="10" rx="2"/><path d="M22 11v2"/><path d="M11 10l-2 4h4l-2 4"/></svg>
+    Recargas
+  </button>
+  <button class="drawer-item" data-acao="gruposaviso">
+    <svg viewBox="0 0 24 24"><path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+    Avisar grupos
+  </button>
+  <button class="drawer-item" data-acao="smsmassa">
+    <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8"/><path d="M8 13h5"/></svg>
+    SMS em massa
+  </button>
+  <button class="drawer-item" data-acao="smsexp">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M9 2h6"/></svg>
+    Aviso de expiração
+  </button>
+  <button class="drawer-item" data-acao="associar">
+    <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.07 0l2.12-2.12a5 5 0 0 0-7.07-7.07L11 4.93"/><path d="M14 11a5 5 0 0 0-7.07 0L4.81 13.12a5 5 0 0 0 7.07 7.07L13 19.07"/></svg>
+    Associar o número
+  </button>
+  <button class="drawer-item" data-acao="contacto">
+    <svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>
+    Fale conosco
+  </button>
+  <button class="drawer-item" data-acao="sobre">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 8h.01"/></svg>
+    Sobre o app
+  </button>
+  <button class="drawer-item" data-acao="sair">
+    <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+    Terminar sessão
+  </button>
+
+  <div class="drawer-foot">Versão <span id="txtVersao"></span></div>
+</aside>
+
+<!-- Janelinha Sobre o app -->
+<div class="modal-overlay" id="modalSobre">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="tituloSobre">
+    <h2 id="tituloSobre">Sobre o app</h2>
+    <p>Painel Automático da Megas Express: controla a venda automática de megas, os telefones e SIMs, o histórico de clientes e os pedidos manuais.</p>
+    <p>Versão <span id="txtVersao2"></span></p>
+    <button id="btnFecharSobre">Fechar</button>
+  </div>
+</div>
+
+<!-- Barra inferior -->
+<nav class="bottom-bar" aria-label="Atalhos">
+  <div class="inner">
+    <button class="bb-item" data-bb="definicoes">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5h0a1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      Definições
+    </button>
+    <button class="bb-item" data-bb="velocidade">
+      <svg viewBox="0 0 24 24"><path d="M12 14l4-5"/><path d="M4.9 19a9 9 0 1 1 14.2 0"/></svg>
+      Velocidade
+    </button>
+    <button class="bb-item" data-bb="telefone">
+      <svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>
+      Telefone
+    </button>
+    <button class="bb-item" data-bb="fila">
+      <svg viewBox="0 0 24 24"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg>
+      Fila
+    </button>
+  </div>
+</nav>
+
+<div class="sheet-overlay" id="sheetOverlay"></div>
+<section class="sheet" id="sheet" aria-hidden="true" role="dialog" aria-labelledby="sheetTitulo">
+  <div class="sheet-head">
+    <div><h2 id="sheetTitulo"></h2><div class="sub" id="sheetSub"></div></div>
+    <button class="drawer-close" id="btnFecharSheet" aria-label="Fechar">✕</button>
+  </div>
+  <div class="sheet-body" id="sheetBody"></div>
+</section>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API_BASE = "";
+
+const switchEl = document.getElementById('switchAutoVenda');
+let autoVendaLigado = false;
+
+function renderSwitch(){
+  switchEl.classList.toggle('on', autoVendaLigado);
+  document.getElementById('txtStatusAuto').textContent =
+    autoVendaLigado ? 'Ligado — processando pedidos' : 'Desligado';
+}
+
+switchEl.addEventListener('click', async () => {
+  switchEl.classList.add('loading');
+  const novoEstado = !autoVendaLigado;
+  try {
+    const res = await fetch(`${API_BASE}/api/auto-venda`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ligado: novoEstado })
+    });
+    if (!res.ok) throw new Error('falha ao atualizar');
+    autoVendaLigado = novoEstado;
+  } catch (e) {
+    console.error('Erro ao alternar venda automática:', e);
+    alert('Não consegui atualizar. Confere se a API está online.');
+  } finally {
+    switchEl.classList.remove('loading');
+    renderSwitch();
+  }
+});
+
+async function carregarStatus(){
+  try {
+    const res = await fetch(`${API_BASE}/api/status`);
+    const data = await res.json();
+    autoVendaLigado = !!data.autoVenda;
+    renderSwitch();
+  } catch (e) {
+    document.getElementById('txtStatusAuto').textContent = 'Sem conexão com a API';
+  }
+}
+
+async function carregarResumo(){
+  try {
+    const res = await fetch(`${API_BASE}/api/resumo`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const d = await res.json();
+    document.getElementById('txtVendasHoje').textContent = d.vendasHoje ?? '0';
+    document.getElementById('txtMbHoje').textContent = (d.mbHoje ?? 0) + ' MB';
+    document.getElementById('txtSaldoTotal').textContent = (d.saldoTotal ?? 0) + ' MT';
+    document.getElementById('txtTelefonesOnline').textContent =
+      `${d.telefonesOnline ?? 0}/${d.telefonesTotal ?? 0}`;
+  } catch (e) {
+    document.getElementById('txtVendasHoje').textContent = 'ERRO';
+    document.getElementById('txtMbHoje').textContent = String(e.message || e).slice(0, 30);
+    console.error('Erro ao carregar resumo:', e);
+  }
+}
+
+async function carregarEventos(){
+  const container = document.getElementById('listEventos');
+  try {
+    const res = await fetch(`${API_BASE}/api/eventos`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const eventos = await res.json();
+    if (!eventos || eventos.length === 0){
+      container.innerHTML = '<div class="empty">Nenhum evento ainda</div>';
+      return;
+    }
+    container.innerHTML = eventos.map(ev => `
+      <div class="list-item">
+        <div>
+          <div class="who">${ev.nome ?? '—'}</div>
+          <div class="when">${ev.hora ?? '—'}</div>
+        </div>
+        <div class="val">${ev.valor ?? '—'}</div>
+      </div>
+    `).join('');
+  } catch (e) {
+    container.innerHTML = `<div class="empty">Erro: ${String(e.message || e)}</div>`;
+    console.error('Erro ao carregar eventos:', e);
+  }
+}
+
+/* ===== Menu lateral ===== */
+const APP_VERSAO = '1.5';
+// Troca pelo número de WhatsApp de suporte (formato internacional, sem + nem espaços)
+const WHATSAPP_SUPORTE = '258875189774';
+
+const btnMenu = document.getElementById('btnMenu');
+const drawer = document.getElementById('drawer');
+const overlay = document.getElementById('drawerOverlay');
+const modalSobre = document.getElementById('modalSobre');
+const toastEl = document.getElementById('toast');
+
+document.getElementById('txtVersao').textContent = APP_VERSAO;
+document.getElementById('txtVersao2').textContent = APP_VERSAO;
+
+function abrirMenu(){
+  drawer.classList.add('open');
+  overlay.classList.add('open');
+  drawer.setAttribute('aria-hidden','false');
+  btnMenu.setAttribute('aria-expanded','true');
+  document.body.style.overflow = 'hidden';
+}
+function fecharMenu(){
+  drawer.classList.remove('open');
+  overlay.classList.remove('open');
+  drawer.setAttribute('aria-hidden','true');
+  btnMenu.setAttribute('aria-expanded','false');
+  document.body.style.overflow = '';
+}
+function mostrarToast(msg){
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  setTimeout(() => toastEl.classList.remove('show'), 2200);
+}
+
+btnMenu.addEventListener('click', abrirMenu);
+overlay.addEventListener('click', fecharMenu);
+document.getElementById('btnFechar').addEventListener('click', fecharMenu);
+
+document.querySelectorAll('.drawer-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const acao = item.dataset.acao;
+    fecharMenu();
+    if (acao === 'tabela') {
+      abrirTabela();
+    } else if (acao === 'alertas') {
+      abrirAlertas();
+    } else if (acao === 'notificacoes') {
+      abrirNotificacoes();
+    } else if (acao === 'inativos') {
+      abrirInativos();
+    } else if (acao === 'recargas') {
+      abrirRecargas();
+    } else if (acao === 'smsat') {
+      abrirSmsAtendimento();
+    } else if (acao === 'gruposaviso') {
+      abrirGruposAviso();
+    } else if (acao === 'smsmassa') {
+      abrirSmsMassa();
+    } else if (acao === 'smsexp') {
+      abrirSmsExpiracao();
+    } else if (acao === 'sobre') {
+      modalSobre.classList.add('open');
+    } else if (acao === 'contacto') {
+      window.open(`https://wa.me/${WHATSAPP_SUPORTE}`, '_blank');
+    } else if (acao === 'associar') {
+      mostrarToast('Associar número: em breve');
+    } else if (acao === 'sair') {
+      if (window.painelSair) window.painelSair(); else location.reload();
+    }
+  });
+});
+
+document.getElementById('btnFecharSobre').addEventListener('click', () => modalSobre.classList.remove('open'));
+modalSobre.addEventListener('click', e => { if (e.target === modalSobre) modalSobre.classList.remove('open'); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { fecharMenu(); modalSobre.classList.remove('open'); }
+});
+
+/* ===== Barra inferior + painel deslizante ===== */
+const sheet = document.getElementById('sheet');
+const sheetOverlay = document.getElementById('sheetOverlay');
+const sheetBody = document.getElementById('sheetBody');
+let sheetAtual = null;
+let filaTimer = null;
+
+function esc(v){
+  return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function marcarBarra(tipo){
+  document.querySelectorAll('.bb-item').forEach(b => b.classList.toggle('active', b.dataset.bb === tipo));
+}
+
+function fecharSheet(){
+  sheet.classList.remove('open');
+  sheetOverlay.classList.remove('open');
+  sheet.setAttribute('aria-hidden','true');
+  sheetAtual = null;
+  clearInterval(filaTimer);
+  filaTimer = null;
+  marcarBarra(null);
+}
+
+function abrirSheet(tipo, titulo, sub){
+  sheetAtual = tipo;
+  document.getElementById('sheetTitulo').textContent = titulo;
+  document.getElementById('sheetSub').textContent = sub || '';
+  sheetBody.innerHTML = '<div class="empty">carregando…</div>';
+  sheet.classList.add('open');
+  sheetOverlay.classList.add('open');
+  sheet.setAttribute('aria-hidden','false');
+  marcarBarra(tipo);
+}
+
+async function postDisparo(corpo){
+  const res = await fetch(`${API_BASE}/api/disparo`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(corpo)
+  });
+  const data = await res.json();
+  if (!res.ok || data.erro) throw new Error(data.erro || `HTTP ${res.status}`);
+  return data;
+}
+
+/* ---- Velocidade ---- */
+const VELOCIDADES = [
+  { seg: 0,  nome: 'Rápida', desc: 'Sem pausa entre envios' },
+  { seg: 5,  nome: 'Normal', desc: '5 segundos entre envios' },
+  { seg: 15, nome: 'Lenta',  desc: '15 segundos entre envios' }
+];
+
+async function abrirVelocidade(){
+  abrirSheet('velocidade', 'Velocidade de envio', 'Pausa entre um envio e o seguinte');
+  try {
+    const res = await fetch(`${API_BASE}/api/disparo`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const d = await res.json();
+    renderVelocidade(Number(d.pausaEnvios) || 0);
+  } catch (e) {
+    sheetBody.innerHTML = `<div class="empty">Erro: ${esc(e.message || e)}</div>`;
+  }
+}
+
+function renderVelocidade(atual){
+  const conhecida = VELOCIDADES.some(v => v.seg === atual);
+  sheetBody.innerHTML = VELOCIDADES.map(v => `
+    <button class="opt ${v.seg === atual ? 'sel' : ''}" data-seg="${v.seg}">
+      <span class="radio"></span>
+      <span><div class="t">${v.nome}</div><div class="d">${v.desc}</div></span>
+    </button>`).join('') +
+    (conhecida ? '' : `<div class="empty">Valor atual: ${atual} s (definido fora do painel)</div>`);
+
+  sheetBody.querySelectorAll('.opt').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const seg = Number(btn.dataset.seg);
+      try {
+        const r = await postDisparo({ pausaEnvios: seg });
+        renderVelocidade(Number(r.pausaEnvios) || 0);
+        mostrarToast('Velocidade atualizada');
+      } catch (e) {
+        mostrarToast('Não consegui guardar: ' + (e.message || e));
+      }
+    });
+  });
+}
+
+/* ---- Escolher telefone ---- */
+async function abrirTelefone(){
+  abrirSheet('telefone', 'Telefone para disparar', 'O bot fica no escolhido até ele esgotar; depois passa ao próximo');
+  try {
+    const res = await fetch(`${API_BASE}/api/disparo`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    renderTelefone(await res.json());
+  } catch (e) {
+    sheetBody.innerHTML = `<div class="empty">Erro: ${esc(e.message || e)}</div>`;
+  }
+}
+
+function renderTelefone(d){
+  const ativo = d.telefoneAtivo || 1;
+  sheetBody.innerHTML = (d.telefones || []).map(t => `
+    <button class="opt ${t.id === ativo ? 'sel' : ''}" data-id="${t.id}">
+      <span class="radio"></span>
+      <span><div class="t">${esc(t.nome)}</div><div class="d">${t.disponivel ? 'Disponível' : 'Sem megas ou limite'}</div></span>
+      <span class="dot ${t.disponivel ? 'ok' : ''}"></span>
+    </button>`).join('');
+
+  sheetBody.querySelectorAll('.opt').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = Number(btn.dataset.id);
+      try {
+        const r = await postDisparo({ telefoneAtivo: id });
+        d.telefoneAtivo = r.telefoneAtivo;
+        renderTelefone(d);
+        mostrarToast(`Disparo pelo Telefone ${id}`);
+      } catch (e) {
+        mostrarToast('Não consegui guardar: ' + (e.message || e));
+      }
+    });
+  });
+}
+
+/* ---- Fila ao vivo ---- */
+const ROTULO_FILA = {
+  pendente:    { txt: 'Na fila',    cls: '' },
+  processando: { txt: 'A preparar', cls: 'prep' },
+  processado:  { txt: 'A enviar',   cls: 'env' }
+};
+
+let ultimaFila = [];
+
+async function carregarFila(){
+  try {
+    const res = await fetch(`${API_BASE}/api/fila`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const fila = await res.json();
+    if (sheetAtual !== 'fila') return;
+    ultimaFila = fila;
+    if (!fila.length) {
+      sheetBody.innerHTML = '<div class="empty">Nenhum envio na fila</div>';
+      return;
+    }
+    sheetBody.innerHTML = '<div class="card">' + fila.map((p, i) => {
+      const st = ROTULO_FILA[p.status] || { txt: p.status, cls: '' };
+      const onde = p.telefone ? ` · Tel ${esc(p.telefone)}${p.sim ? ' ' + esc(p.sim) : ''}` : '';
+      return `
+        <button class="fila-item" data-i="${i}">
+          <div>
+            <div class="who">${esc(p.nome)}</div>
+            <div class="meta">${esc(p.mb)} MB · ${esc(p.valor)} MT · ${esc(p.hora)}${onde}</div>
+          </div>
+          <span class="badge ${st.cls}">${st.txt}</span>
+        </button>`;
+    }).join('') + '</div>';
+    sheetBody.querySelectorAll('.fila-item').forEach(btn => {
+      btn.addEventListener('click', () => verPedido(ultimaFila[Number(btn.dataset.i)]));
+    });
+  } catch (e) {
+    if (sheetAtual === 'fila') sheetBody.innerHTML = `<div class="empty">Erro: ${esc(e.message || e)}</div>`;
+  }
+}
+
+function mostrarFila(){
+  sheetAtual = 'fila';
+  document.getElementById('sheetTitulo').textContent = 'Fila de envios';
+  document.getElementById('sheetSub').textContent = 'Atualiza a cada 5 segundos · toca num pedido para gerir';
+  carregarFila();
+}
+
+function abrirFila(){
+  abrirSheet('fila', 'Fila de envios', 'Atualiza a cada 5 segundos · toca num pedido para gerir');
+  clearInterval(filaTimer);
+  carregarFila();
+  filaTimer = setInterval(carregarFila, 5000);
+}
+
+/* Botão que pede um segundo toque para confirmar */
+function comConfirmacao(btn, rotuloConfirmar, acao){
+  const rotuloOriginal = btn.textContent;
+  let armado = false, t = null;
+  btn.addEventListener('click', () => {
+    if (!armado) {
+      armado = true;
+      btn.textContent = rotuloConfirmar;
+      btn.classList.add('armado');
+      t = setTimeout(() => { armado = false; btn.textContent = rotuloOriginal; btn.classList.remove('armado'); }, 4000);
+      return;
+    }
+    clearTimeout(t);
+    armado = false;
+    btn.classList.remove('armado');
+    btn.textContent = rotuloOriginal;
+    acao();
+  });
+}
+
+function verPedido(p){
+  if (!p) return;
+  sheetAtual = 'fila-detalhe';
+  const st = ROTULO_FILA[p.status] || { txt: p.status };
+  document.getElementById('sheetTitulo').textContent = 'Pedido';
+  document.getElementById('sheetSub').textContent = p.pedidoId;
+  const podeReabrir = p.status !== 'pendente';
+  const espera = (p.status === 'processado' && p.processadoHa !== null && p.processadoHa < 60)
+    ? `<p class="note warn" style="color:var(--amber)">Enviado ao telefone há ${esc(p.processadoHa)} s. Espera 1 minuto antes de reabrir.</p>` : '';
+
+  sheetBody.innerHTML = `
+    <div class="preview">
+      <b>${esc(p.nome)}</b><br>
+      Número: ${esc(p.numero)}<br>
+      ${esc(p.mb)} MB · ${esc(p.valor)} MT<br>
+      Estado: ${esc(st.txt)}${p.telefone ? ' · Tel ' + esc(p.telefone) + (p.sim ? ' ' + esc(p.sim) : '') : ''}
+    </div>
+    ${espera}
+    <label class="field">
+      <span>PIN</span>
+      <input id="inpPinAcao" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN" aria-label="PIN">
+    </label>
+    <div class="btn-row">
+      ${podeReabrir ? '<button class="btn-main" id="btnReabrir">Reabrir</button>' : ''}
+      <button class="btn-main danger" id="btnCancelarPedido">Cancelar pedido</button>
+    </div>
+    <p class="note"><b>Reabrir</b> põe o pedido outra vez na fila. Só uses se o envio realmente falhou: se o telefone já enviou os megas, o cliente recebe duas vezes.</p>
+    <p class="note"><b>Cancelar</b> tira o pedido da fila. Não avisa o cliente nem devolve o dinheiro, isso tens de fazer à parte.</p>
+    <button class="btn-main ghost" id="btnVoltarFila" style="margin-top:12px">Voltar à fila</button>`;
+
+  const executar = async (acao) => {
+    const pin = document.getElementById('inpPinAcao').value;
+    if (!pin) { mostrarToast('Escreve o PIN'); return; }
+    try {
+      const res = await fetch(`${API_BASE}/api/fila-acao`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pedidoId: p.pedidoId, acao, pin })
+      });
+      const data = await res.json();
+      if (!res.ok || data.erro) throw new Error(data.erro || `HTTP ${res.status}`);
+      mostrarToast(acao === 'reabrir' ? 'Pedido reaberto' : 'Pedido cancelado');
+      mostrarFila();
+      carregarResumo();
+    } catch (e) {
+      mostrarToast(e.message || String(e));
+    }
+  };
+
+  const btnReabrir = document.getElementById('btnReabrir');
+  if (btnReabrir) comConfirmacao(btnReabrir, 'Toca de novo para reabrir', () => executar('reabrir'));
+  comConfirmacao(document.getElementById('btnCancelarPedido'), 'Toca de novo para cancelar', () => executar('cancelar'));
+  document.getElementById('btnVoltarFila').addEventListener('click', mostrarFila);
+}
+
+document.getElementById('btnFecharSheet').addEventListener('click', fecharSheet);
+sheetOverlay.addEventListener('click', fecharSheet);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharSheet(); });
+
+document.querySelectorAll('.bb-item').forEach(b => {
+  b.addEventListener('click', () => {
+    const a = b.dataset.bb;
+    if (a === sheetAtual) { fecharSheet(); return; }
+    if (a === 'definicoes') {
+      window.location.href = '/configuracoes.html';
+    } else if (a === 'velocidade') {
+      abrirVelocidade();
+    } else if (a === 'telefone') {
+      abrirTelefone();
+    } else if (a === 'fila') {
+      abrirFila();
+    }
+  });
+});
+
+/* ===== Lucro do dia ===== */
+const fmtMT = n => (Number(n) || 0).toLocaleString('pt-MZ', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + ' MT';
+let ultimoLucro = null;
+
+async function carregarLucro(){
+  try {
+    const res = await fetch(`${API_BASE}/api/lucro`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const d = await res.json();
+    ultimoLucro = d;
+    const big = document.getElementById('txtLucro');
+    const hint = document.getElementById('txtLucroHint');
+    document.getElementById('txtLucroVendido').textContent = fmtMT(d.vendido);
+    if (!d.temCustos) {
+      big.textContent = '—';
+      big.className = 'big';
+      hint.textContent = 'define os custos dos pacotes';
+      document.getElementById('txtLucroCusto').textContent = '—';
+      document.getElementById('txtLucroMargem').textContent = '—';
+      return;
+    }
+    big.textContent = fmtMT(d.lucro);
+    big.className = 'big ' + (d.lucro >= 0 ? 'pos' : 'neg');
+    hint.textContent = d.semCusto > 0 ? `${d.semCusto} venda(s) sem custo` : 'toca para ajustar';
+    document.getElementById('txtLucroCusto').textContent = fmtMT(d.custo);
+    document.getElementById('txtLucroMargem').textContent = d.margem + '%';
+  } catch (e) {
+    document.getElementById('txtLucro').textContent = 'ERRO';
+    console.error('Erro ao carregar lucro:', e);
+  }
+}
+
+const COMPRAS_GB = [5, 7, 10, 20]; // pacotes em que compras os megas
+
+// Lucro de cada pacote da tabela: preço de venda − custo (ajuste do pacote, ou MB ÷ 1024 × custo por GB)
+function calcularLucroTabela(tabela, custoPorGB, ajustes){
+  return (tabela || []).map(p => {
+    const aj = ajustes && ajustes[p.mb];
+    const custo = (aj !== undefined && aj !== null) ? Number(aj) : p.mb / 1024 * custoPorGB;
+    const lucro = p.preco - custo;
+    return { mb: p.mb, preco: p.preco, custo, lucro, margem: p.preco > 0 ? lucro / p.preco * 100 : 0 };
+  });
+}
+
+const fmt2 = n => (Number(n) || 0).toLocaleString('pt-MZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+function abrirLucro(){
+  abrirSheet('lucro', 'Custo dos megas', 'Quanto pagas pelos pacotes que compras');
+  const d = ultimoLucro || { pacotes: [], custoPorGB: 0, tabela: [], custosCompra: {}, compraAtiva: null };
+  const tabela = d.tabela || [];
+  const compras = d.custosCompra || {};
+  let ativo = Number(d.compraAtiva) || COMPRAS_GB.find(g => Number(compras[g]) > 0) || null;
+  const legado = !Object.keys(compras).length && Number(d.custoPorGB) > 0;
+
+  // Até 3 pacotes da tabela para mostrar o cálculo automático
+  const exemplos = [];
+  if (tabela.length) {
+    [0.15, 0.5, 0.85].forEach(q => {
+      const p = tabela[Math.min(tabela.length - 1, Math.floor(q * tabela.length))];
+      if (p && !exemplos.includes(p)) exemplos.push(p);
+    });
+  }
+
+  const linhas = (d.pacotes || []).map(p => {
+    const sub = p.vendas
+      ? `${esc(p.vendas)} venda(s)${p.valor ? ' · ' + esc(p.valor) + ' MT' : ''}`
+      : (p.valor ? 'tabela: ' + esc(p.valor) + ' MT' : 'sem vendas');
+    return `
+    <div class="pkg">
+      <div class="info">${esc(p.mb)} MB<small>${sub}</small></div>
+      <input class="custo-pkg" data-mb="${esc(p.mb)}" type="number" inputmode="decimal" min="0" step="0.01"
+             value="${p.custo ?? ''}" placeholder="custo MT" aria-label="Custo do pacote de ${esc(p.mb)} MB em MT">
+    </div>`;
+  }).join('');
+
+  const aviso = tabela.length
+    ? ''
+    : '<p class="note" style="margin:0 0 10px">Ainda não guardaste a tabela de preços (menu → Tabela de preços). Sem ela, o painel só calcula com os MB que cada venda já traz.</p>';
+
+  sheetBody.innerHTML = `
+    ${aviso}
+    ${legado ? `<p class="note" style="margin:0 0 10px">Tens um custo antigo de ${esc(d.custoPorGB)} MT por GB. Ao guardar os preços de compra abaixo, ele é substituído.</p>` : ''}
+    <div class="sec">Quanto pagas por cada pacote que compras?</div>
+    ${COMPRAS_GB.map(gb => `
+    <div class="pkg">
+      <div class="info">${gb} GB<small id="gbPorGB${gb}">—</small></div>
+      <input class="compra" data-gb="${gb}" type="number" inputmode="decimal" min="0" step="0.01"
+             value="${compras[gb] ?? ''}" placeholder="MT" aria-label="Preço de compra de ${gb} GB em MT">
+    </div>`).join('')}
+    <div class="sec">Qual estás a usar agora?</div>
+    <div class="chips" role="group" aria-label="Pacote de compra em uso">
+      ${COMPRAS_GB.map(gb => `<button class="chip ${ativo === gb ? 'sel' : ''}" data-gb="${gb}" aria-pressed="${ativo === gb}">${gb} GB</button>`).join('')}
+    </div>
+    <div class="exemplos" id="boxExemplos" ${exemplos.length ? '' : 'hidden'}></div>
+    <button class="btn-main" id="btnGuardarCusto" style="margin-top:14px">Guardar</button>
+    <p class="note">O lucro usa o custo por GB do pacote em uso: preço ÷ GB. Para cada venda, o painel calcula MB ÷ 1024 × esse custo, só das vendas finalizadas hoje. Quando comprares outro pacote, escolhe-o aqui em "Qual estás a usar agora".</p>
+
+    <details class="avancado">
+      <summary>Avançado: custo diferente para um pacote específico</summary>
+      <p class="note" style="margin:0 0 6px">Só preenche se algum pacote não segue o custo por GB. O ajuste tem prioridade. Vazio = usa o custo por GB.</p>
+      ${linhas || '<div class="empty">Nenhum pacote vendido ainda.</div>'}
+      <div class="sec">Adicionar outro pacote</div>
+      <div class="pkg novo">
+        <input class="mb" id="inpNovoMb" type="number" inputmode="numeric" min="1" step="1" placeholder="MB" aria-label="MB do novo pacote">
+        <input id="inpNovoCusto" type="number" inputmode="decimal" min="0" step="0.01" placeholder="custo MT" aria-label="Custo do novo pacote em MT">
+      </div>
+    </details>`;
+
+  const inputsCompra = [...sheetBody.querySelectorAll('.compra')];
+  const box = document.getElementById('boxExemplos');
+  const precoDe = gb => Number(inputsCompra.find(i => Number(i.dataset.gb) === gb).value);
+  const custoPorGBAtual = () => (ativo && precoDe(ativo) > 0) ? precoDe(ativo) / ativo : 0;
+
+  const atualizar = () => {
+    COMPRAS_GB.forEach(gb => {
+      const p = precoDe(gb);
+      document.getElementById('gbPorGB' + gb).textContent = p > 0 ? `${fmt2(p / gb)} MT por GB` : '—';
+    });
+    if (!exemplos.length) return;
+    const gb = custoPorGBAtual();
+    if (!(gb > 0)) {
+      box.innerHTML = 'Escreve o preço de compra e escolhe o pacote em uso: vês aqui o lucro de alguns pacotes da tua tabela.';
+      return;
+    }
+    box.innerHTML = `<b>Exemplos (custo ${fmt2(gb)} MT por GB)</b><br>` + exemplos.map(p => {
+      const custo = p.mb / 1024 * gb;
+      const lucro = p.preco - custo;
+      return `${esc(p.mb)} MB ➜ vendes ${esc(p.preco)} MT · custo ${fmt2(custo)} MT · <span class="${lucro >= 0 ? 'pos' : 'neg'}">lucro ${fmt2(lucro)} MT</span>`;
+    }).join('<br>');
+  };
+  inputsCompra.forEach(i => i.addEventListener('input', atualizar));
+  sheetBody.querySelectorAll('.chip[data-gb]').forEach(c => c.addEventListener('click', () => {
+    ativo = Number(c.dataset.gb);
+    sheetBody.querySelectorAll('.chip[data-gb]').forEach(x => {
+      const sel = Number(x.dataset.gb) === ativo;
+      x.classList.toggle('sel', sel);
+      x.setAttribute('aria-pressed', String(sel));
+    });
+    atualizar();
+  }));
+  atualizar();
+
+  document.getElementById('btnGuardarCusto').addEventListener('click', async () => {
+    const btn = document.getElementById('btnGuardarCusto');
+    const custosPacotes = {};
+    sheetBody.querySelectorAll('.custo-pkg').forEach(inp => {
+      custosPacotes[inp.dataset.mb] = inp.value === '' ? null : Number(inp.value);
+    });
+    const novoMb = document.getElementById('inpNovoMb').value;
+    const novoCusto = document.getElementById('inpNovoCusto').value;
+    if (novoMb !== '' || novoCusto !== '') {
+      if (novoMb === '' || novoCusto === '' || !(Number(novoMb) > 0) || !(Number(novoCusto) >= 0)) {
+        mostrarToast('Preenche MB e custo do novo pacote');
+        return;
+      }
+      custosPacotes[String(parseInt(novoMb, 10))] = Number(novoCusto);
+    }
+    for (const v of Object.values(custosPacotes)) {
+      if (v !== null && (!Number.isFinite(v) || v < 0)) { mostrarToast('Há um valor inválido'); return; }
+    }
+
+    const corpo = { custosPacotes };
+    const custosCompra = {};
+    inputsCompra.forEach(i => { custosCompra[i.dataset.gb] = i.value === '' ? null : Number(i.value); });
+    const preenchidos = Object.values(custosCompra).filter(v => v !== null);
+    if (preenchidos.some(v => !Number.isFinite(v) || v <= 0)) { mostrarToast('Os preços de compra têm de ser maiores que 0'); return; }
+    if (preenchidos.length) {
+      if (!ativo || !(precoDe(ativo) > 0)) { mostrarToast('Escolhe o pacote em uso e preenche o preço dele'); return; }
+      corpo.custosCompra = custosCompra;
+      corpo.compraAtiva = ativo;
+    } else if (Object.keys(compras).length) {
+      corpo.custosCompra = {};   // apagou todos os preços
+      corpo.compraAtiva = null;
+    } // senão: mantém o custo por GB antigo, se existir
+
+    btn.disabled = true;
+    try {
+      const res = await fetch(`${API_BASE}/api/lucro`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(corpo)
+      });
+      const data = await res.json();
+      if (!res.ok || data.erro) throw new Error(data.erro || `HTTP ${res.status}`);
+      mostrarToast('Custos guardados');
+      fecharSheet();
+      carregarLucro();
+    } catch (e) {
+      mostrarToast('Não consegui guardar: ' + (e.message || e));
+      btn.disabled = false;
+    }
+  });
+}
+document.getElementById('btnLucro').addEventListener('click', abrirLucro);
+
+/* ===== Tabela de preços (colar do WhatsApp) ===== */
+function lerTabela(texto){
+  const mapa = new Map();
+  let ignoradas = 0, conflitos = 0;
+  for (const linha of String(texto).split(/\r?\n/)) {
+    const m = linha.match(/(\d+)\s*MB[^\d\n]{0,8}?(\d+(?:[.,]\d+)?)\s*MT/i);
+    if (m) {
+      const mb = parseInt(m[1], 10);
+      const preco = Number(m[2].replace(',', '.'));
+      if (mb > 0 && preco > 0) {
+        if (mapa.has(mb) && mapa.get(mb) !== preco) conflitos++;
+        mapa.set(mb, preco);
+        continue;
+      }
+    }
+    if (/\d\s*MB/i.test(linha)) ignoradas++;
+  }
+  const pacotes = [...mapa.entries()].map(([mb, preco]) => ({ mb, preco })).sort((a, b) => a.mb - b.mb);
+  let foraDeOrdem = 0;
+  for (let i = 1; i < pacotes.length; i++) if (pacotes[i].preco < pacotes[i - 1].preco) foraDeOrdem++;
+  const t = String(texto).match(/total\s*:?\s*(\d+)\s*pacotes/i);
+  return { pacotes, ignoradas, conflitos, foraDeOrdem, declarado: t ? parseInt(t[1], 10) : null };
+}
+
+async function abrirTabela(){
+  abrirSheet('tabela', 'Tabela de preços', 'Os teus preços de venda e quanto lucras em cada pacote');
+  let guardada = null, luc = null;
+  try {
+    const [rt, rl] = await Promise.all([fetch(`${API_BASE}/api/tabela`), fetch(`${API_BASE}/api/lucro`)]);
+    if (rt.ok) guardada = await rt.json();
+    if (rl.ok) luc = await rl.json();
+  } catch (e) { /* segue sem o resumo da tabela guardada */ }
+  if (sheetAtual !== 'tabela') return;
+
+  const tem = !!(guardada && guardada.total);
+  const custoPorGB = luc ? Number(luc.custoPorGB) || 0 : 0;
+  const ajustes = {};
+  ((luc && luc.pacotes) || []).forEach(p => { if (p.custo !== null && p.custo !== undefined) ajustes[p.mb] = p.custo; });
+  const temCusto = custoPorGB > 0 || Object.keys(ajustes).length > 0;
+
+  let lista = '';
+  if (tem) {
+    if (!temCusto) {
+      lista = `<div class="note" style="margin:0 0 12px">Para ver o lucro de cada pacote, define quanto pagas pelos megas: menu → toca no cartão <b>Lucro hoje</b> → preços de compra de 5, 7, 10 e 20 GB.</div>
+        <div class="card">${guardada.pacotes.map(p => `
+        <div class="pkg"><div class="info">${esc(p.mb)} MB<small>vendes a ${esc(p.preco)} MT</small></div></div>`).join('')}</div>`;
+    } else {
+      const linhas = calcularLucroTabela(guardada.pacotes, custoPorGB, ajustes);
+      const prej = linhas.filter(l => l.lucro < 0).length;
+      const media = linhas.reduce((a, l) => a + l.lucro, 0) / linhas.length;
+      const ativoGB = luc && Number(luc.compraAtiva) ? ` (compra de ${esc(luc.compraAtiva)} GB)` : '';
+      lista = `
+        <div class="note" style="margin:0 0 8px">Custo usado: <b>${fmt2(custoPorGB)} MT por GB</b>${ativoGB}. Lucro médio por pacote: <b>${fmt2(media)} MT</b>.
+          ${prej ? `<span style="color:var(--red)"> ${prej} pacote(s) com prejuízo.</span>` : ''}</div>
+        <div class="card">${linhas.map(l => `
+        <div class="pkg">
+          <div class="info">${esc(l.mb)} MB<small>vendes ${esc(l.preco)} MT · custo ${fmt2(l.custo)} MT</small></div>
+          <span class="lucro ${l.lucro >= 0 ? 'pos' : 'neg'}">${l.lucro >= 0 ? '+' : ''}${fmt2(l.lucro)} MT<small>${fmt2(l.margem)}%</small></span>
+        </div>`).join('')}</div>`;
+    }
+  }
+
+  const resumo = tem
+    ? `Tabela guardada: <b>${esc(guardada.total)} pacotes</b> (${esc(guardada.pacotes[0].mb)} MB a ${esc(guardada.pacotes[guardada.pacotes.length - 1].mb)} MB).`
+    : 'Ainda não há tabela guardada. Cola a tua tabela do WhatsApp aqui em baixo.';
+
+  sheetBody.innerHTML = `
+    <p class="note" style="margin:0 0 10px">${resumo}</p>
+    ${lista}
+    <details class="avancado" ${tem ? '' : 'open'}>
+      <summary>${tem ? 'Colar outra tabela (substitui esta)' : 'Colar a tabela'}</summary>
+      <label class="field">
+        <span>Cola aqui a tabela (linhas como "📱 150MB ➜ 4MT")</span>
+        <textarea id="txtTabela" placeholder="Cola aqui…" aria-label="Tabela de preços"></textarea>
+      </label>
+      <div id="prevTabela"></div>
+      <div class="btn-row">
+        <button class="btn-main" id="btnLerTabela">Ler tabela</button>
+        <button class="btn-main" id="btnGuardarTabela" disabled>Guardar</button>
+      </div>
+    </details>`;
+
+  let lida = null;
+  const prev = document.getElementById('prevTabela');
+  const btnGuardar = document.getElementById('btnGuardarTabela');
+
+  document.getElementById('btnLerTabela').addEventListener('click', () => {
+    lida = lerTabela(document.getElementById('txtTabela').value);
+    btnGuardar.disabled = lida.pacotes.length === 0;
+    if (!lida.pacotes.length) {
+      prev.innerHTML = '<div class="preview warn">Não encontrei nenhum pacote. Confirma se as linhas têm o formato 150MB ➜ 4MT.</div>';
+      return;
+    }
+    const p = lida.pacotes;
+    const avisos = [];
+    if (lida.declarado !== null && lida.declarado !== p.length) avisos.push(`A tabela diz ${lida.declarado} pacotes, mas li ${p.length}.`);
+    if (lida.ignoradas) avisos.push(`${lida.ignoradas} linha(s) com MB não foram lidas.`);
+    if (lida.conflitos) avisos.push(`${lida.conflitos} pacote(s) repetido(s) com preços diferentes (vale o último).`);
+    prev.innerHTML = `<div class="preview"><b>${p.length} pacotes lidos</b><br>
+      ${esc(p[0].mb)} MB → ${esc(p[0].preco)} MT &nbsp;…&nbsp; ${esc(p[p.length - 1].mb)} MB → ${esc(p[p.length - 1].preco)} MT
+      ${lida.foraDeOrdem ? `<br><span class="sub">${lida.foraDeOrdem} pacote(s) com preço fora da ordem (pode ser normal).</span>` : ''}
+      ${avisos.map(a => `<br><span class="warn">${esc(a)}</span>`).join('')}</div>`;
+  });
+
+  btnGuardar.addEventListener('click', async () => {
+    if (!lida || !lida.pacotes.length) return;
+    btnGuardar.disabled = true;
+    try {
+      const res = await fetch(`${API_BASE}/api/tabela`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pacotes: lida.pacotes })
+      });
+      const data = await res.json();
+      if (!res.ok || data.erro) throw new Error(data.erro || `HTTP ${res.status}`);
+      mostrarToast(`Tabela guardada: ${data.total} pacotes`);
+      fecharSheet();
+      carregarLucro();
+    } catch (e) {
+      mostrarToast('Não consegui guardar: ' + (e.message || e));
+      btnGuardar.disabled = false;
+    }
+  });
+}
+
+/* ===== Alerta de saldo baixo ===== */
+async function carregarAlertas(){
+  try {
+    const res = await fetch(`${API_BASE}/api/alertas`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const d = await res.json();
+    const box = document.getElementById('bannerSaldo');
+    const baixos = (d.sims || []).filter(s => s.baixo);
+    if (d.limiteMB > 0 && baixos.length) {
+      document.getElementById('txtBannerSaldo').textContent =
+        baixos.map(s => `${s.nome} ${s.sim}: ${s.mb} MB`).join(' · ') + ` (limite ${d.limiteMB} MB)`;
+      box.hidden = false;
+    } else {
+      box.hidden = true;
+    }
+  } catch (e) {
+    console.error('Erro ao carregar alertas:', e);
+  }
+}
+
+async function abrirAlertas(){
+  abrirSheet('alertas', 'Alerta de saldo', 'Avisa quando um SIM fica com poucos MB');
+  try {
+    const res = await fetch(`${API_BASE}/api/alertas`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    renderAlertas(await res.json());
+  } catch (e) {
+    sheetBody.innerHTML = `<div class="empty">Erro: ${esc(e.message || e)}</div>`;
+  }
+}
+
+function renderAlertas(d){
+  const linhas = (d.sims || []).map(s => `
+    <div class="pkg">
+      <div class="info">${esc(s.nome)} · ${esc(s.sim)}<small>${esc(s.mb)} MB</small></div>
+      <span class="badge ${d.limiteMB > 0 ? (s.baixo ? 'prep' : 'env') : ''}">${d.limiteMB > 0 ? (s.baixo ? 'Baixo' : 'OK') : '—'}</span>
+    </div>`).join('');
+
+  sheetBody.innerHTML = `
+    <label class="field">
+      <span>Avisar quando um SIM ficar abaixo de (MB)</span>
+      <input id="inpLimiteSaldo" type="number" inputmode="numeric" min="0" step="1" value="${d.limiteMB || ''}" placeholder="ex.: 500" aria-label="Limite de saldo em MB">
+    </label>
+    <button class="btn-main" id="btnGuardarAlerta">Guardar</button>
+    <p class="note">Quando um SIM descer do limite, o painel mostra um aviso e o bot manda uma mensagem ao grupo admin, uma vez por SIM. Se o saldo voltar a subir, o aviso reinicia. Vazio ou 0 desliga. SIMs sem megas e sem limite de envio ficam de fora. Para receber o aviso como notificação no telemóvel, ativa em <b>Notificações</b> no menu.</p>
+    <div class="sec">Saldo atual dos SIMs</div>
+    ${linhas || '<div class="empty">Nenhum SIM configurado</div>'}`;
+
+  document.getElementById('btnGuardarAlerta').addEventListener('click', async () => {
+    const btn = document.getElementById('btnGuardarAlerta');
+    const v = document.getElementById('inpLimiteSaldo').value;
+    const n = v === '' ? 0 : Number(v);
+    if (!Number.isFinite(n) || n < 0) { mostrarToast('Valor inválido'); return; }
+    btn.disabled = true;
+    try {
+      const res = await fetch(`${API_BASE}/api/alertas`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ limiteMB: n })
+      });
+      const data = await res.json();
+      if (!res.ok || data.erro) throw new Error(data.erro || `HTTP ${res.status}`);
+      mostrarToast(n > 0 ? `Alerta abaixo de ${n} MB` : 'Alerta desligado');
+      fecharSheet();
+      carregarAlertas();
+    } catch (e) {
+      mostrarToast('Não consegui guardar: ' + (e.message || e));
+      btn.disabled = false;
+    }
+  });
+}
+document.getElementById('bannerSaldo').addEventListener('click', abrirAlertas);
+
+/* ===== Notificações push neste telemóvel ===== */
+const suportaPush = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+
+function chaveParaBytes(base64){
+  const pad = '='.repeat((4 - base64.length % 4) % 4);
+  const b64 = (base64 + pad).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(b64);
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+
+async function pedirJSON(url, opcoes){
+  const res = await fetch(url, opcoes);
+  const data = await res.json();
+  if (!res.ok || data.erro) throw new Error(data.erro || `HTTP ${res.status}`);
+  return data;
+}
+
+async function ativarPush(pin){
+  const reg = await navigator.serviceWorker.register('/sw.js');
+  await navigator.serviceWorker.ready;
+  const perm = await Notification.requestPermission();
+  if (perm !== 'granted') throw new Error('Permissão de notificações não concedida');
+  const { publicKey } = await pedirJSON(`${API_BASE}/api/push-chave`);
+  let sub = await reg.pushManager.getSubscription();
+  if (!sub) {
+    sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: chaveParaBytes(publicKey) });
+  }
+  await pedirJSON(`${API_BASE}/api/push-inscrever`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ subscription: sub.toJSON(), pin })
+  });
+}
+
+async function montarPush(){
+  const box = document.getElementById('boxPush');
+  if (!box) return;
+  if (!suportaPush()) {
+    box.innerHTML = '<p class="note" style="margin:0">Este app não suporta notificações push. Abre o painel no Chrome e usa "Instalar app" no menu para receber avisos.</p>';
+    return;
+  }
+  if (Notification.permission === 'denied') {
+    box.innerHTML = '<p class="note" style="margin:0">As notificações estão bloqueadas nas definições do Android para este app. Ativa-as lá e volta aqui.</p>';
+    return;
+  }
+  let ativo = false;
+  try {
+    const reg = await navigator.serviceWorker.getRegistration('/');
+    ativo = !!(reg && await reg.pushManager.getSubscription());
+  } catch (e) { /* segue como não ativo */ }
+  if (!document.getElementById('boxPush')) return;
+
+  box.innerHTML = `
+    <p class="note" style="margin:0 0 8px">${ativo ? '✅ Ativas neste telemóvel.' : 'Ainda não ativadas neste telemóvel.'}</p>
+    <label class="field">
+      <span>PIN</span>
+      <input id="inpPinPush" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN" aria-label="PIN">
+    </label>
+    <div class="btn-row">
+      <button class="btn-main" id="btnAtivarPush">${ativo ? 'Reativar' : 'Ativar'}</button>
+      <button class="btn-main ghost" id="btnTestePush">Enviar teste</button>
+    </div>`;
+
+  const lerPin = () => {
+    const pin = document.getElementById('inpPinPush').value;
+    if (!pin) mostrarToast('Escreve o PIN');
+    return pin;
+  };
+
+  document.getElementById('btnAtivarPush').addEventListener('click', async () => {
+    const pin = lerPin(); if (!pin) return;
+    try {
+      await ativarPush(pin);
+      mostrarToast('Notificações ativadas');
+      montarPush();
+    } catch (e) {
+      mostrarToast(e.message || String(e));
+    }
+  });
+
+  document.getElementById('btnTestePush').addEventListener('click', async () => {
+    const pin = lerPin(); if (!pin) return;
+    try {
+      await pedirJSON(`${API_BASE}/api/push-teste`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin })
+      });
+      mostrarToast('Teste enviado. Deve aparecer numa notificação.');
+    } catch (e) {
+      mostrarToast(e.message || String(e));
+    }
+  });
+}
+
+function abrirNotificacoes(){
+  abrirSheet('notificacoes', 'Notificações', 'Receber os avisos como notificação neste telemóvel');
+  sheetBody.innerHTML = '<div id="boxPush"><p class="note" style="margin:0">a verificar…</p></div>';
+  montarPush();
+}
+
+/* ===== Vendas da semana ===== */
+const fmtMB = n => n >= 1024 ? (n / 1024).toFixed(1).replace('.', ',') + ' GB' : Math.round(n) + ' MB';
+let ultimaSemana = null;
+let metricaSemana = 'vendas';
+
+async function carregarSemana(){
+  try {
+    const res = await fetch(`${API_BASE}/api/semana`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const d = await res.json();
+    ultimaSemana = d;
+    const t = d.totais;
+    document.getElementById('txtSemanaTotal').textContent =
+      t.vendas ? `${t.vendas} vendas · ${fmtMB(t.mb)} · ${fmtMT(t.vendido)}` : 'Sem vendas nos últimos 7 dias';
+    const max = Math.max(1, ...d.dias.map(x => x.vendas));
+    document.getElementById('miniSemana').innerHTML = d.dias.map((x, i) =>
+      `<i class="${i === d.dias.length - 1 ? 'hoje' : ''}" style="height:${Math.max(6, (x.vendas / max) * 100)}%"></i>`).join('');
+    if (sheetAtual === 'semana') desenharSemana();
+  } catch (e) {
+    document.getElementById('txtSemanaTotal').textContent = 'ERRO';
+    console.error('Erro ao carregar semana:', e);
+  }
+}
+
+function curto(v, metrica){
+  if (metrica === 'mb') return v >= 1024 ? (v / 1024).toFixed(1).replace('.', ',') + 'G' : String(Math.round(v));
+  return v >= 1000 ? (v / 1000).toFixed(1).replace('.', ',') + 'k' : String(Math.round(v));
+}
+
+function svgBarrasDias(dias, metrica){
+  const val = d => d[metrica];
+  const W = 320, H = 150, base = H - 22, topo = 18, n = dias.length, bw = 26;
+  const gap = (W - n * bw) / (n + 1);
+  const max = Math.max(1, ...dias.map(val));
+  const barras = dias.map((d, i) => {
+    const v = val(d);
+    const h = v > 0 ? Math.max(3, (v / max) * (base - topo)) : 0;
+    const x = gap + i * (bw + gap), y = base - h;
+    return `<rect class="bar ${i === n - 1 ? 'hoje' : ''}" x="${x}" y="${y}" width="${bw}" height="${h}" rx="4"/>
+      ${v > 0 ? `<text class="axis" x="${x + bw / 2}" y="${y - 5}" text-anchor="middle">${curto(v, metrica)}</text>` : ''}
+      <text class="axis" x="${x + bw / 2}" y="${H - 6}" text-anchor="middle">${esc(d.rotulo)}</text>`;
+  }).join('');
+  const resumo = dias.map(d => `${d.rotulo}: ${val(d)}`).join(', ');
+  return `<svg class="grafico" viewBox="0 0 ${W} ${H}" role="img" aria-label="Gráfico dos últimos 7 dias. ${esc(resumo)}">${barras}</svg>`;
+}
+
+function svgHoras(horas, melhor){
+  const W = 320, H = 84, base = H - 18, topo = 6, margem = 8;
+  const passo = (W - 2 * margem) / 24, bw = passo - 3;
+  const max = Math.max(1, ...horas);
+  const barras = horas.map((v, h) => {
+    const alt = v > 0 ? Math.max(3, (v / max) * (base - topo)) : 0;
+    return `<rect class="bar ${h === melhor ? 'pico' : ''}" x="${margem + h * passo}" y="${base - alt}" width="${bw}" height="${alt}" rx="2"/>`;
+  }).join('');
+  const rotulos = [0, 6, 12, 18].map(h =>
+    `<text class="axis" x="${margem + h * passo + bw / 2}" y="${H - 4}" text-anchor="middle">${h}h</text>`).join('');
+  return `<svg class="grafico" viewBox="0 0 ${W} ${H}" role="img" aria-label="Vendas por hora do dia">${barras}${rotulos}</svg>`;
+}
+
+function desenharSemana(){
+  const d = ultimaSemana;
+  if (!d) { sheetBody.innerHTML = '<div class="empty">carregando…</div>'; return; }
+  if (!d.totais.vendas) {
+    sheetBody.innerHTML = '<div class="empty">Sem vendas finalizadas nos últimos 7 dias</div>';
+    return;
+  }
+  const rotM = { vendas: 'Vendas', mb: 'MB', vendido: 'Valor' };
+  const unidade = { vendas: 'vendas por dia', mb: 'MB vendidos por dia (G = GB)', vendido: 'MT vendidos por dia (k = mil)' };
+  const pico = d.melhorHora === null ? '' :
+    `Hora com mais vendas: <b>${d.melhorHora}h–${(d.melhorHora + 1) % 24}h</b> (${d.horas[d.melhorHora]} vendas na semana).`;
+
+  sheetBody.innerHTML = `
+    <div class="chips" role="group" aria-label="Escolher o que mostrar">
+      ${Object.keys(rotM).map(k => `<button class="chip ${k === metricaSemana ? 'sel' : ''}" data-m="${k}" aria-pressed="${k === metricaSemana}">${rotM[k]}</button>`).join('')}
+    </div>
+    ${svgBarrasDias(d.dias, metricaSemana)}
+    <p class="note" style="margin-top:2px">${unidade[metricaSemana]} · barra verde-clara = hoje</p>
+    <div class="sec">Horas com mais vendas (últimos 7 dias)</div>
+    ${svgHoras(d.horas, d.melhorHora)}
+    <p class="note">${pico} Média: <b>${String(d.mediaVendas).replace('.', ',')}</b> vendas por dia. Horas e dias em hora de Maputo.</p>`;
+
+  sheetBody.querySelectorAll('.chip').forEach(c => {
+    c.addEventListener('click', () => { metricaSemana = c.dataset.m; desenharSemana(); });
+  });
+}
+
+function abrirSemana(){
+  abrirSheet('semana', 'Vendas da semana', 'Últimos 7 dias, hoje incluído');
+  desenharSemana();
+  carregarSemana();
+}
+document.getElementById('btnSemana').addEventListener('click', abrirSemana);
+
+/* ---- Clientes inativos ---- */
+// Mensagem que abre no WhatsApp (o cliente pode editar antes de enviar). {nome} e {dias} são trocados.
+const MSG_INATIVO = 'Olá {nome}! Já faz {dias} dias que não compra megas connosco. Precisa de algum pacote hoje?';
+let inativosLista = [];
+let inativosMin = 7;
+
+function nomeParaMsg(nome){
+  const n = String(nome || '').trim();
+  return /[A-Za-zÀ-ÿ]/.test(n) ? n : '';   // só usa o nome se tiver letras (senão é um número)
+}
+
+function abrirWhatsAppCliente(c){
+  const nome = nomeParaMsg(c.nome);
+  const texto = MSG_INATIVO
+    .replace('Olá {nome}!', nome ? `Olá ${nome}!` : 'Olá!')
+    .replace('{dias}', c.dias);
+  window.open(`https://wa.me/${c.numero}?text=${encodeURIComponent(texto)}`, '_blank');
+}
+
+function desenharInativos(){
+  if (sheetAtual !== 'inativos') return;
+  const lista = inativosLista.filter(c => c.dias >= inativosMin);
+  const chips = `
+    <div class="chips">
+      <button class="chip ${inativosMin === 7 ? 'sel' : ''}" data-min="7">7+ dias</button>
+      <button class="chip ${inativosMin === 15 ? 'sel' : ''}" data-min="15">15+ dias</button>
+    </div>`;
+  let corpo;
+  if (!lista.length) {
+    corpo = '<div class="empty">Nenhum cliente inativo neste período 🎉</div>';
+  } else {
+    corpo = '<div class="card">' + lista.map((c, i) => {
+      const nome = nomeParaMsg(c.nome) || c.numero || c.nome || 'Cliente';
+      const dest = c.numeroTipo === 'destino' ? ' · <span class="tag-dest">nº do último envio</span>' : '';
+      const botao = c.numero
+        ? `<button class="btn-wa" data-i="${i}">WhatsApp</button>`
+        : `<button class="btn-wa" disabled>sem número</button>`;
+      return `
+        <div class="inat-item">
+          <div>
+            <div class="who">${esc(nome)}</div>
+            <div class="meta">há ${esc(c.dias)} dias · ${esc(c.totalCompras)} compras · ${esc(c.totalGasto)} MT${dest}</div>
+          </div>
+          ${botao}
+        </div>`;
+    }).join('') + '</div>' +
+    (inativosLista.length >= 100 ? '<div class="note">A mostrar os 100 que mais gastaram.</div>' : '');
+  }
+  const btnSms = '<button class="btn-main" id="btnSmsInativos" style="margin-bottom:10px">Enviar SMS a estes clientes…</button>';
+  sheetBody.innerHTML = chips + btnSms + corpo;
+  document.getElementById('btnSmsInativos').addEventListener('click', () => {
+    abrirSmsMassa(inativosMin === 15 ? 'inativos15' : 'inativos7');
+  });
+  sheetBody.querySelectorAll('.chip').forEach(b => {
+    b.addEventListener('click', () => { inativosMin = Number(b.dataset.min); desenharInativos(); });
+  });
+  sheetBody.querySelectorAll('.btn-wa[data-i]').forEach(b => {
+    b.addEventListener('click', () => abrirWhatsAppCliente(lista[Number(b.dataset.i)]));
+  });
+}
+
+async function abrirInativos(){
+  abrirSheet('inativos', 'Clientes inativos', 'Quem não compra há 7 dias ou mais · toca para chamar no WhatsApp');
+  try {
+    const res = await fetch(`${API_BASE}/api/inativos?dias=7`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    inativosLista = await res.json();
+    desenharInativos();
+  } catch (e) {
+    if (sheetAtual === 'inativos') sheetBody.innerHTML = `<div class="empty">Erro: ${esc(e.message || e)}</div>`;
+  }
+}
+
+/* ---- Recargas por telefone ---- */
+const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+
+function fmtRec(mb){
+  const n = Number(mb) || 0;
+  if (n >= 1024) { const g = n / 1024; return (Number.isInteger(g) ? g : g.toFixed(2)) + ' GB'; }
+  return n + ' MB';
+}
+function nomeMes(chave){
+  const [a, m] = String(chave || '').split('-');
+  return MESES[Number(m) - 1] ? `${MESES[Number(m) - 1]} de ${a}` : (chave || '');
+}
+
+async function enviarRecarga(corpo){
+  const res = await fetch(`${API_BASE}/api/recargas`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(corpo)
+  });
+  const data = await res.json();
+  if (!res.ok || data.erro) throw new Error(data.erro || `HTTP ${res.status}`);
+  return data;
+}
+
+function renderRecargas(d){
+  if (sheetAtual !== 'recargas') return;
+  const t = d.total || {};
+  const porTel = (d.telefones || []).map(x => `
+    <div class="pkg">
+      <div class="info">${esc(x.nome)}<small>${esc(x.recargas)} ${x.recargas === 1 ? 'recarga' : 'recargas'}</small></div>
+      <div class="dir">${x.recargas ? esc(fmtRec(x.mb)) + (x.custo > 0 ? '<br>' + esc(x.custo) + ' MT' : '') : '—'}</div>
+    </div>`).join('');
+
+  const opcoesTel = (d.telefones || []).map(x => `<option value="${esc(x.id)}">${esc(x.nome)}</option>`).join('');
+
+  const lista = (d.lista || []).map((r, i) => `
+    <div class="inat-item">
+      <div>
+        <div class="who">${esc(r.telefoneNome)}${r.sim ? ' · ' + esc(r.sim) : ''} · ${esc(fmtRec(r.mb))}</div>
+        <div class="meta">${esc(r.data)} ${esc(r.hora)}${r.custo !== null && r.custo !== undefined ? ' · ' + esc(r.custo) + ' MT' : ''}${r.nota ? ' · ' + esc(r.nota) : ''}</div>
+      </div>
+      <button class="btn-wa del" data-i="${i}">Apagar</button>
+    </div>`).join('');
+
+  sheetBody.innerHTML = `
+    <div class="card">
+      <div class="rec-sub">Este mês · ${esc(nomeMes(d.mes))}</div>
+      <div class="rec-tot">${esc(fmtRec(t.mb || 0))}${t.custo > 0 ? ' · ' + esc(t.custo) + ' MT' : ''}</div>
+      <div class="rec-sub">${esc(t.recargas || 0)} ${t.recargas === 1 ? 'recarga' : 'recargas'}${t.custoPorGB ? ' · custo médio ' + esc(t.custoPorGB) + ' MT/GB' : ''}</div>
+      ${porTel}
+    </div>
+
+    <div class="sec">Registar recarga</div>
+    <label class="field">
+      <span>Telefone</span>
+      <select id="selRecTel" aria-label="Telefone">${opcoesTel}</select>
+    </label>
+    <div class="lin2">
+      <label class="field">
+        <span>SIM</span>
+        <select id="selRecSim" aria-label="SIM">
+          <option value="SIM1">SIM1</option>
+          <option value="SIM2">SIM2</option>
+          <option value="">Não sei</option>
+        </select>
+      </label>
+    </div>
+    <div class="lin2">
+      <label class="field">
+        <span>Quantidade</span>
+        <input id="inpRecQtd" type="number" inputmode="decimal" min="0" step="any" placeholder="ex.: 10" aria-label="Quantidade">
+      </label>
+      <label class="field peq">
+        <span>Unidade</span>
+        <select id="selRecUni" aria-label="Unidade"><option value="GB">GB</option><option value="MB">MB</option></select>
+      </label>
+    </div>
+    <label class="field">
+      <span>Custo em MT (opcional)</span>
+      <input id="inpRecCusto" type="number" inputmode="decimal" min="0" step="0.01" placeholder="ex.: 180" aria-label="Custo em MT">
+    </label>
+    <label class="field">
+      <span>Nota (opcional)</span>
+      <input id="inpRecNota" type="text" maxlength="80" placeholder="ex.: pacote mensal" aria-label="Nota">
+    </label>
+    <label class="field">
+      <span>PIN</span>
+      <input id="inpRecPin" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN" aria-label="PIN">
+    </label>
+    <button class="btn-main" id="btnRegRecarga">Registar recarga</button>
+    <p class="note">Só fica registado aqui: não altera o saldo dos SIMs. Para acertar o saldo, usa Definições.</p>
+
+    <div class="sec">Últimas recargas</div>
+    ${lista ? '<div class="card">' + lista + '</div>' : '<div class="empty">Ainda não registaste nenhuma recarga</div>'}
+  `;
+
+  document.getElementById('btnRegRecarga').addEventListener('click', async () => {
+    const btn = document.getElementById('btnRegRecarga');
+    const qtd = Number(document.getElementById('inpRecQtd').value);
+    const uni = document.getElementById('selRecUni').value;
+    const pin = document.getElementById('inpRecPin').value;
+    if (!Number.isFinite(qtd) || qtd <= 0) { mostrarToast('Escreve a quantidade'); return; }
+    if (!pin) { mostrarToast('Escreve o PIN'); return; }
+    btn.disabled = true;
+    try {
+      await enviarRecarga({
+        pin,
+        telefone: Number(document.getElementById('selRecTel').value),
+        sim: document.getElementById('selRecSim').value,
+        mb: uni === 'GB' ? Math.round(qtd * 1024) : Math.round(qtd),
+        custo: document.getElementById('inpRecCusto').value,
+        nota: document.getElementById('inpRecNota').value
+      });
+      mostrarToast('Recarga registada');
+      carregarRecargas();
+    } catch (e) {
+      mostrarToast('Não consegui registar: ' + (e.message || e));
+      btn.disabled = false;
+    }
+  });
+
+  sheetBody.querySelectorAll('.btn-wa.del').forEach(btn => {
+    const r = d.lista[Number(btn.dataset.i)];
+    comConfirmacao(btn, 'Apagar?', async () => {
+      const pin = document.getElementById('inpRecPin').value;
+      if (!pin) { mostrarToast('Escreve o PIN para apagar'); return; }
+      try {
+        await enviarRecarga({ pin, acao: 'apagar', id: r.id });
+        mostrarToast('Recarga apagada');
+        carregarRecargas();
+      } catch (e) {
+        mostrarToast('Não consegui apagar: ' + (e.message || e));
+      }
+    });
+  });
+}
+
+async function carregarRecargas(){
+  try {
+    const res = await fetch(`${API_BASE}/api/recargas`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    renderRecargas(await res.json());
+  } catch (e) {
+    if (sheetAtual === 'recargas') sheetBody.innerHTML = `<div class="empty">Erro: ${esc(e.message || e)}</div>`;
+  }
+}
+
+function abrirRecargas(){
+  abrirSheet('recargas', 'Recargas', 'Registo das recargas de cada telefone');
+  carregarRecargas();
+}
+
+/* ---- SMS em massa ---- */
+const SMS_SEGS = {
+  inativos7:  { nome: 'Inativos 7+ dias',  msg: 'Ola {nome}! Ja faz {dias} dias que nao compra megas connosco. Precisa de algum pacote hoje? Megas Express' },
+  inativos15: { nome: 'Inativos 15+ dias', msg: 'Ola {nome}! Sentimos a sua falta. Ja faz {dias} dias que nao compra megas. Estamos aqui quando precisar. Megas Express' },
+  ativos:     { nome: 'Ativos (7 dias)',   msg: 'Ola {nome}! Obrigado por comprar connosco. Quando precisar de mais megas, e so avisar. Megas Express' }
+};
+let smsSeg = 'inativos7';
+const smsMsgs = {};          // texto escrito por segmento
+let smsDest = [];
+let smsExcl = new Set();
+
+function smsRenderCli(tpl, vars){
+  return String(tpl)
+    .replace(/\{(\w+)\}/g, (m, k) => (vars[k] !== undefined ? String(vars[k]) : m))
+    .replace(/\s+([!,.?;:])/g, '$1').replace(/[ \t]{2,}/g, ' ').trim();
+}
+function smsPrimeiroNomeCli(nome){
+  return String(nome || '').trim().split(/\s+/).find(w => /[A-Za-zÀ-ÿ]/.test(w)) || '';
+}
+function smsInfo(t){
+  const uni = /[^\x00-\x7F]/.test(t);
+  const lim1 = uni ? 70 : 160, limN = uni ? 67 : 153;
+  const n = t.length;
+  return { n, uni, partes: n <= lim1 ? 1 : Math.ceil(n / limN) };
+}
+
+async function enviarSmsApi(rota, corpo){
+  const res = await fetch(`${API_BASE}/api/${rota}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(corpo)
+  });
+  const data = await res.json();
+  if (!res.ok || data.erro) throw new Error(data.erro || `HTTP ${res.status}`);
+  return data;
+}
+
+function abrirSmsMassa(seg){
+  if (seg && SMS_SEGS[seg]) smsSeg = seg;
+  abrirSheet('smsmassa', 'SMS em massa', 'Envia SMS aos clientes pelo telemóvel do bot');
+  smsExcl = new Set();
+  carregarSmsMassa();
+}
+
+async function carregarSmsMassa(){
+  try {
+    const res = await fetch(`${API_BASE}/api/sms-massa?segmento=${encodeURIComponent(smsSeg)}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const d = await res.json();
+    if (sheetAtual !== 'smsmassa') return;
+    if (d.job && d.job.estado === 'enviando') {
+      renderSmsProgresso(d.job);
+      if (!filaTimer) filaTimer = setInterval(carregarSmsMassa, 3000);
+    } else {
+      clearInterval(filaTimer); filaTimer = null;
+      renderSmsMassa(d);
+    }
+  } catch (e) {
+    if (sheetAtual === 'smsmassa') sheetBody.innerHTML = `<div class="empty">Erro: ${esc(e.message || e)}</div>`;
+  }
+}
+
+function renderSmsProgresso(j){
+  const feitos = j.enviados + j.falhas;
+  const pct = j.total ? Math.round(feitos / j.total * 100) : 0;
+  sheetBody.innerHTML = `
+    <div class="card">
+      <div class="rec-sub">${esc((SMS_SEGS[j.segmento] || {}).nome || j.segmento)}</div>
+      <div class="rec-tot">A enviar… ${esc(feitos)} de ${esc(j.total)}</div>
+      <div class="prog-bar"><i style="width:${pct}%"></i></div>
+      <div class="rec-sub">${esc(j.enviados)} enviados · ${esc(j.falhas)} falhas · ${esc(j.restantes)} por enviar</div>
+      ${j.aEsperarFila ? '<div class="rec-sub" style="color:var(--amber);margin-top:6px">A dar prioridade a pedidos em curso…</div>' : ''}
+      ${j.ultimoErro ? `<div class="rec-sub" style="color:var(--red);margin-top:6px">Último erro: ${esc(j.ultimoErro)}</div>` : ''}
+    </div>
+    <button class="btn-main danger solo" id="btnPararSms">Parar envio</button>
+    <p class="note">Podes fechar esta janela: o envio continua no bot. Os SMS já enviados não se desfazem.</p>`;
+  document.getElementById('btnPararSms').addEventListener('click', async () => {
+    try { await enviarSmsApi('sms-massa', { acao: 'parar' }); mostrarToast('Envio parado'); carregarSmsMassa(); }
+    catch (e) { mostrarToast('Não consegui parar: ' + (e.message || e)); }
+  });
+}
+
+function renderSmsMassa(d){
+  smsDest = d.destinatarios || [];
+  const msgAtual = smsMsgs[smsSeg] !== undefined ? smsMsgs[smsSeg] : SMS_SEGS[smsSeg].msg;
+
+  const chips = '<div class="chips" style="flex-wrap:wrap">' + Object.keys(SMS_SEGS).map(k =>
+    `<button class="chip ${k === smsSeg ? 'sel' : ''}" data-seg="${k}">${esc(SMS_SEGS[k].nome)}</button>`).join('') + '</div>';
+
+  let ultimo = '';
+  if (d.job) {
+    const j = d.job;
+    const est = j.estado === 'concluido' ? 'concluído' : (j.estado === 'parado' ? 'parado' : j.estado);
+    ultimo = `<div class="note" style="margin:0 0 10px">Último envio (${esc((SMS_SEGS[j.segmento] || {}).nome || j.segmento)}): ${esc(est)} · ${esc(j.enviados)} enviados, ${esc(j.falhas)} falhas${j.restantes ? ', ' + esc(j.restantes) + ' não enviados' : ''}.</div>`;
+  }
+
+  const aviso = [];
+  if (d.semNumero) aviso.push(`${d.semNumero} sem número do comprador`);
+  if (d.recentes) aviso.push(`${d.recentes} já receberam SMS nos últimos ${d.cooldownDias} dias`);
+  if (d.totalElegiveis > smsDest.length) aviso.push(`a mostrar os ${smsDest.length} que mais gastaram`);
+
+  const linhas = smsDest.map((c, i) => `
+    <label class="inat-item">
+      <div>
+        <div class="who">${esc(smsPrimeiroNomeCli(c.nome) || c.numero)}</div>
+        <div class="meta">${esc(c.numero.slice(3))} · há ${esc(c.dias)} dias · ${esc(c.totalCompras)} compras</div>
+      </div>
+      <input class="chk" type="checkbox" data-n="${esc(c.numero)}" ${smsExcl.has(c.numero) ? '' : 'checked'} aria-label="Enviar a ${esc(c.nome)}">
+    </label>`).join('');
+
+  sheetBody.innerHTML = `
+    ${chips}
+    ${ultimo}
+    <div class="note" style="margin:0 0 10px"><b id="txtSmsQtd"></b>${aviso.length ? ' · ' + esc(aviso.join(' · ')) : ''}</div>
+
+    <label class="field">
+      <span>Mensagem ({nome} e {dias} são trocados por cliente)</span>
+      <textarea class="sms-txt" id="txtSmsMsg" maxlength="320" aria-label="Mensagem">${esc(msgAtual)}</textarea>
+    </label>
+    <div class="sms-cnt" id="txtSmsCnt"></div>
+    <div class="rec-sub" style="margin-bottom:4px">Como o cliente vai ler:</div>
+    <div class="sms-prev" id="txtSmsPrev"></div>
+
+    <div class="sec">Clientes que vão receber</div>
+    ${smsDest.length ? '<div class="card">' + linhas + '</div>' : '<div class="empty">Nenhum cliente neste grupo</div>'}
+
+    <label class="field" style="margin-top:12px">
+      <span>PIN</span>
+      <input id="inpSmsPin" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN" aria-label="PIN">
+    </label>
+    <button class="btn-main" id="btnEnviarSms">Enviar SMS</button>
+    <p class="note">Cada SMS gasta saldo de SMS do chip e sai pelo telemóvel do bot, com uma pausa de 6 segundos entre mensagens. Se houver pedidos a processar, o envio espera. Quem já recebeu SMS em massa há poucos dias fica de fora, para não incomodar. Evita enviar de noite.</p>`;
+
+  const txt = document.getElementById('txtSmsMsg');
+  function atualizarSms(){
+    smsMsgs[smsSeg] = txt.value;
+    const inf = smsInfo(txt.value);
+    const cnt = document.getElementById('txtSmsCnt');
+    cnt.textContent = `${inf.n} caracteres · ${inf.partes} ${inf.partes === 1 ? 'SMS' : 'SMS por cliente'}` +
+      (inf.uni ? ' · acentos reduzem o limite para 70 por SMS' : '');
+    cnt.classList.toggle('alerta', inf.uni || inf.partes > 1);
+    const primeiro = smsDest.find(c => !smsExcl.has(c.numero));
+    document.getElementById('txtSmsPrev').textContent = primeiro
+      ? smsRenderCli(txt.value, { nome: smsPrimeiroNomeCli(primeiro.nome), dias: primeiro.dias })
+      : '—';
+    const n = smsDest.filter(c => !smsExcl.has(c.numero)).length;
+    document.getElementById('txtSmsQtd').textContent = `${n} ${n === 1 ? 'cliente vai' : 'clientes vão'} receber`;
+    document.getElementById('btnEnviarSms').disabled = n === 0 || !txt.value.trim();
+  }
+  txt.addEventListener('input', atualizarSms);
+  atualizarSms();
+
+  sheetBody.querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => {
+    smsSeg = b.dataset.seg; smsExcl = new Set();
+    sheetBody.innerHTML = '<div class="empty">carregando…</div>';
+    carregarSmsMassa();
+  }));
+  sheetBody.querySelectorAll('.chk').forEach(c => c.addEventListener('change', () => {
+    if (c.checked) smsExcl.delete(c.dataset.n); else smsExcl.add(c.dataset.n);
+    atualizarSms();
+  }));
+
+  const btn = document.getElementById('btnEnviarSms');
+  comConfirmacao(btn, 'Toca outra vez para enviar', async () => {
+    const pin = document.getElementById('inpSmsPin').value;
+    if (!pin) { mostrarToast('Escreve o PIN'); return; }
+    btn.disabled = true;
+    try {
+      const r = await enviarSmsApi('sms-massa', {
+        pin, acao: 'iniciar', segmento: smsSeg, mensagem: txt.value, excluir: [...smsExcl]
+      });
+      mostrarToast(`A enviar a ${r.total} clientes`);
+      carregarSmsMassa();
+    } catch (e) {
+      mostrarToast('Não consegui enviar: ' + (e.message || e));
+      btn.disabled = false;
+    }
+  });
+}
+
+/* ---- Aviso de expiração por SMS ---- */
+function abrirSmsExpiracao(){
+  abrirSheet('smsexp', 'Aviso de expiração', 'SMS ao comprador antes dos megas acabarem');
+  carregarSmsExpiracao();
+}
+
+async function carregarSmsExpiracao(){
+  try {
+    const res = await fetch(`${API_BASE}/api/sms-expiracao`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    renderSmsExpiracao(await res.json());
+  } catch (e) {
+    if (sheetAtual === 'smsexp') sheetBody.innerHTML = `<div class="empty">Erro: ${esc(e.message || e)}</div>`;
+  }
+}
+
+function renderSmsExpiracao(d){
+  if (sheetAtual !== 'smsexp') return;
+  let ativo = !!d.ativo;
+  const proximos = (d.proximos || []).map(p => `
+    <div class="inat-item">
+      <div>
+        <div class="who">${esc(p.nome)} · ${esc(fmtRec(p.mb))}</div>
+        <div class="meta">aviso ${esc(p.avisarEm)} · expira ${esc(p.expiraEm)}</div>
+      </div>
+    </div>`).join('');
+
+  sheetBody.innerHTML = `
+    <div class="chips">
+      <button class="chip ${ativo ? 'sel' : ''}" data-on="1">Ligado</button>
+      <button class="chip ${!ativo ? 'sel' : ''}" data-on="0">Desligado</button>
+    </div>
+    <div class="lin2">
+      <label class="field">
+        <span>Validade dos megas (horas)</span>
+        <input id="inpExpVal" type="number" inputmode="numeric" min="1" max="720" step="1" value="${esc(d.validadeHoras)}" aria-label="Validade em horas">
+      </label>
+      <label class="field">
+        <span>Avisar antes (minutos)</span>
+        <input id="inpExpAviso" type="number" inputmode="numeric" min="5" max="720" step="1" value="${esc(d.avisoMinutos)}" aria-label="Minutos antes">
+      </label>
+    </div>
+    <label class="field">
+      <span>Mensagem ({nome} = nome do cliente, {mb} = megas comprados, {grupo} = nome do grupo, {numero} = número que recebeu os megas, {hora} = hora em que expiram)</span>
+      <textarea class="sms-txt" id="txtExpMsg" maxlength="320" aria-label="Mensagem">${esc(d.mensagem)}</textarea>
+    </label>
+    <label class="field">
+      <span>PIN</span>
+      <input id="inpExpPin" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN" aria-label="PIN">
+    </label>
+    <button class="btn-main" id="btnGuardarExp">Guardar</button>
+    <p class="note">Quando faltar o tempo indicado para os megas de uma compra expirarem, o bot manda um SMS <b>ao número de quem comprou</b>, não ao que recebeu os megas. Compras do mesmo comprador que expiram quase juntas vão num só SMS. Se o comprador não tiver número (conta de grupo sem telefone visível), não é possível avisar. <b>Ao ligar, este aviso substitui o lembrete antigo do bot</b> (que também mandava SMS 1 hora antes), para ninguém receber dois SMS.</p>
+
+    <div class="sec">Estado</div>
+    <div class="rec-sub">${esc(d.enviadosHoje)} ${d.enviadosHoje === 1 ? 'aviso enviado' : 'avisos enviados'} hoje${d.semNumero ? ' · ' + esc(d.semNumero) + ' compras sem número do comprador' : ''}</div>
+
+    <div class="sec">Próximos avisos</div>
+    ${proximos ? '<div class="card">' + proximos + '</div>' : '<div class="empty">Sem compras a expirar</div>'}`;
+
+  sheetBody.querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => {
+    ativo = b.dataset.on === '1';
+    sheetBody.querySelectorAll('.chip').forEach(x => x.classList.toggle('sel', (x.dataset.on === '1') === ativo));
+  }));
+
+  const btn = document.getElementById('btnGuardarExp');
+  btn.addEventListener('click', async () => {
+    const pin = document.getElementById('inpExpPin').value;
+    if (!pin) { mostrarToast('Escreve o PIN'); return; }
+    btn.disabled = true;
+    try {
+      await enviarSmsApi('sms-expiracao', {
+        pin, ativo,
+        validadeHoras: Number(document.getElementById('inpExpVal').value),
+        avisoMinutos: Number(document.getElementById('inpExpAviso').value),
+        mensagem: document.getElementById('txtExpMsg').value
+      });
+      mostrarToast(ativo ? 'Aviso por SMS ligado' : 'Aviso por SMS desligado');
+      carregarSmsExpiracao();
+    } catch (e) {
+      mostrarToast('Não consegui guardar: ' + (e.message || e));
+      btn.disabled = false;
+    }
+  });
+}
+
+/* ---- Atendimento por SMS ---- */
+const SMS_ORIGEM = { cliente: 'cliente', bot: 'bot (automático)', painel: 'tu', pedido: 'pedido', massa: 'campanha', aviso: 'aviso de expiração' };
+let smsAtNumero = null;
+
+async function atualizarBadgeSms(){
+  try {
+    const res = await fetch(`${API_BASE}/api/sms-conversas?resumo=1`);
+    if (!res.ok) return;
+    const d = await res.json();
+    const n = Number(d.naoLidas) || 0;
+    document.getElementById('dotSms').hidden = n === 0;
+    const b = document.getElementById('badgeSms');
+    b.hidden = n === 0;
+    b.textContent = n;
+  } catch (e) { /* sem rede: ignora */ }
+}
+
+function abrirSmsAtendimento(){
+  abrirSheet('smsat', 'Atendimento SMS', 'Conversas com clientes por SMS');
+  smsAtNumero = null;
+  carregarSmsAtLista();
+}
+
+async function carregarSmsAtLista(){
+  try {
+    const res = await fetch(`${API_BASE}/api/sms-conversas`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    renderSmsAtLista(await res.json());
+  } catch (e) {
+    if (sheetAtual === 'smsat') sheetBody.innerHTML = `<div class="empty">Erro: ${esc(e.message || e)}</div>`;
+  }
+}
+
+function renderSmsAtLista(d){
+  if (sheetAtual !== 'smsat') return;
+  let ativo = !!d.ativo;
+  const linhas = (d.conversas || []).map(c => `
+    <button class="conv-row" data-n="${esc(c.numero)}">
+      <div>
+        <div class="who">${esc(c.nome || c.numero.slice(3))}${c.precisaHumano ? '<span class="badge prep">responder</span>' : ''}</div>
+        <div class="meta">${c.ultimaDir === 'out' ? 'Tu: ' : ''}${esc(c.ultima)}</div>
+      </div>
+      <div class="dir">${esc(c.quando)}${c.naoLidas ? `<span class="badge prep">${esc(c.naoLidas)}</span>` : ''}</div>
+    </button>`).join('');
+
+  sheetBody.innerHTML = `
+    ${linhas ? '<div class="card">' + linhas + '</div>' : '<div class="empty">Ainda não há conversas por SMS</div>'}
+
+    <div class="sec">Comandos e respostas tuas</div>
+    <button class="btn-main" id="btnSmsComandos">Comandos e respostas (${(d.respostas || []).length})</button>
+    <p class="note">Cria as tuas próprias palavras-chave e respostas. Elas têm prioridade sobre as respostas do bot.</p>
+
+    <div class="sec">Respostas automáticas</div>
+    <div class="chips">
+      <button class="chip ${ativo ? 'sel' : ''}" data-on="1">Ligadas</button>
+      <button class="chip ${!ativo ? 'sel' : ''}" data-on="0">Desligadas</button>
+    </div>
+    <label class="field">
+      <span>Dados de pagamento (vão nas respostas de "como pagar/comprar")</span>
+      <input id="inpSmsAtPag" type="text" maxlength="160" value="${esc(d.pagamento || '')}" placeholder="ex.: 84xxxxxxx (Nome) / eMola 86xxxxxxx" aria-label="Dados de pagamento">
+    </label>
+    <label class="field">
+      <span>Máximo de respostas automáticas por hora a cada número</span>
+      <input id="inpSmsAtLimite" type="number" inputmode="numeric" min="1" max="100" step="1" value="${esc(d.limiteHora || 10)}" aria-label="Máximo de respostas por hora">
+    </label>
+    <label class="field">
+      <span>PIN</span>
+      <input id="inpSmsAtPin" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN" aria-label="PIN">
+    </label>
+    <button class="btn-main" id="btnSmsAtGuardar">Guardar</button>
+    <p class="note">Ligadas: quando um cliente manda SMS que não é um comprovativo, o bot responde sozinho a TABELA, COMPRAR, SALDO, PEDIDO, MENU e ATENDENTE, e também a pedidos como "quero 2GB", "tenho 50MT" ou "como pago". O que ele não percebe, ou pedidos de atendente e reclamações, ficam marcados "responder" para ti, e recebes uma notificação. Os teus comandos (acima) só funcionam com as respostas ligadas e vencem as respostas do bot. Desligadas: o bot só pede o comprovativo, como antes. Respostas ao teu SMS em massa também caem aqui. O máximo por hora existe para o bot não ficar preso numa troca infinita com outro robô; depois de o atingir, ele pára de responder a esse número até passar uma hora.</p>`;
+
+  sheetBody.querySelectorAll('.conv-row').forEach(b => b.addEventListener('click', () => abrirSmsConversa(b.dataset.n)));
+  document.getElementById('btnSmsComandos').addEventListener('click', () => abrirSmsComandos(d.respostas || []));
+  sheetBody.querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => {
+    ativo = b.dataset.on === '1';
+    sheetBody.querySelectorAll('.chip').forEach(x => x.classList.toggle('sel', (x.dataset.on === '1') === ativo));
+  }));
+  const btn = document.getElementById('btnSmsAtGuardar');
+  btn.addEventListener('click', async () => {
+    const pin = document.getElementById('inpSmsAtPin').value;
+    if (!pin) { mostrarToast('Escreve o PIN'); return; }
+    btn.disabled = true;
+    try {
+      await enviarSmsApi('sms-conversas', { pin, acao: 'config', ativo, limiteHora: Number(document.getElementById('inpSmsAtLimite').value), pagamento: document.getElementById('inpSmsAtPag').value });
+      mostrarToast(ativo ? 'Respostas automáticas ligadas' : 'Respostas automáticas desligadas');
+    } catch (e) {
+      mostrarToast('Não consegui guardar: ' + (e.message || e));
+    }
+    btn.disabled = false;
+  });
+}
+
+function abrirSmsConversa(numero){
+  smsAtNumero = numero;
+  abrirSheet('smsat', numero.slice(3), 'Conversa por SMS');
+  carregarSmsConversa(true);
+  clearInterval(filaTimer);
+  filaTimer = setInterval(() => carregarSmsConversa(false), 8000);
+}
+
+async function carregarSmsConversa(primeira, forcarFundo){
+  try {
+    const res = await fetch(`${API_BASE}/api/sms-conversas?numero=${encodeURIComponent(smsAtNumero)}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const d = await res.json();
+    if (sheetAtual !== 'smsat' || d.numero !== smsAtNumero) return;
+    if (primeira) renderSmsConversaBase(d);
+    desenharMensagensSms(d, primeira || forcarFundo);
+    if (d.precisaHumano) { // abrir a conversa conta como "lida"
+      enviarSmsApi('sms-conversas', { acao: 'ler', numero: d.numero }).then(atualizarBadgeSms).catch(() => {});
+    }
+  } catch (e) {
+    if (primeira && sheetAtual === 'smsat') sheetBody.innerHTML = `<div class="empty">Erro: ${esc(e.message || e)}</div>`;
+  }
+}
+
+function desenharMensagensSms(d, irParaFundo){
+  const box = document.getElementById('smsChat');
+  if (!box) return;
+  const perto = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
+  box.innerHTML = (d.mensagens || []).map(m => `
+    <div class="bol ${m.d === 'out' ? 'out' : ''}">${esc(m.t)}<small>${esc(SMS_ORIGEM[m.o] || m.o)} · ${esc(m.quando)}</small></div>`).join('')
+    || '<div class="empty">Sem mensagens</div>';
+  if (irParaFundo || perto) box.scrollTop = box.scrollHeight;
+}
+
+function renderSmsConversaBase(d){
+  document.getElementById('sheetTitulo').textContent = d.nome || d.numero.slice(3);
+  document.getElementById('sheetSub').textContent = d.nome ? `Conversa por SMS · ${d.numero.slice(3)}` : 'Conversa por SMS';
+  sheetBody.innerHTML = `
+    <button class="btn-main btn-voltar" id="btnVoltarSms">← Voltar às conversas</button>
+    <div class="chat" id="smsChat"></div>
+    <label class="field">
+      <span>Responder por SMS</span>
+      <textarea class="sms-txt" id="txtSmsResp" maxlength="320" aria-label="Resposta"></textarea>
+    </label>
+    <div class="sms-cnt" id="cntSmsResp"></div>
+    <label class="field">
+      <span>PIN</span>
+      <input id="inpSmsRespPin" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN" aria-label="PIN">
+    </label>
+    <button class="btn-main" id="btnSmsResp">Enviar SMS</button>
+    <div style="margin-top:14px;text-align:center"><button class="btn-wa del" id="btnSmsApagar">Apagar conversa</button></div>`;
+
+  const txt = document.getElementById('txtSmsResp');
+  const cnt = document.getElementById('cntSmsResp');
+  function contar(){
+    const inf = smsInfo(txt.value);
+    cnt.textContent = `${inf.n} caracteres · ${inf.partes} ${inf.partes === 1 ? 'SMS' : 'SMS'}` + (inf.uni ? ' · acentos reduzem o limite para 70 por SMS' : '');
+    cnt.classList.toggle('alerta', inf.uni || inf.partes > 1);
+  }
+  txt.addEventListener('input', contar);
+  contar();
+
+  document.getElementById('btnVoltarSms').addEventListener('click', () => {
+    clearInterval(filaTimer); filaTimer = null;
+    smsAtNumero = null;
+    document.getElementById('sheetTitulo').textContent = 'Atendimento SMS';
+    document.getElementById('sheetSub').textContent = 'Conversas com clientes por SMS';
+    sheetBody.innerHTML = '<div class="empty">carregando…</div>';
+    carregarSmsAtLista();
+    atualizarBadgeSms();
+  });
+
+  const btn = document.getElementById('btnSmsResp');
+  btn.addEventListener('click', async () => {
+    const pin = document.getElementById('inpSmsRespPin').value;
+    if (!txt.value.trim()) { mostrarToast('Escreve a mensagem'); return; }
+    if (!pin) { mostrarToast('Escreve o PIN'); return; }
+    btn.disabled = true;
+    try {
+      await enviarSmsApi('sms-conversas', { pin, acao: 'responder', numero: d.numero, texto: txt.value });
+      mostrarToast('SMS enviado');
+      txt.value = ''; contar();
+      carregarSmsConversa(false, true);
+    } catch (e) {
+      mostrarToast('Não consegui enviar: ' + (e.message || e));
+    }
+    btn.disabled = false;
+  });
+
+  comConfirmacao(document.getElementById('btnSmsApagar'), 'Apagar mesmo?', async () => {
+    const pin = document.getElementById('inpSmsRespPin').value;
+    if (!pin) { mostrarToast('Escreve o PIN para apagar'); return; }
+    try {
+      await enviarSmsApi('sms-conversas', { pin, acao: 'apagar', numero: d.numero });
+      mostrarToast('Conversa apagada');
+      document.getElementById('btnVoltarSms').click();
+    } catch (e) {
+      mostrarToast('Não consegui apagar: ' + (e.message || e));
+    }
+  });
+}
+
+
+/* ---- Comandos e respostas personalizados ---- */
+let smsCmds = [];
+let smsCmdEdit = null; // id em edição, '' = novo, null = só lista
+
+function abrirSmsComandos(lista){
+  smsCmds = (lista || []).map(c => ({ ...c }));
+  smsCmdEdit = null;
+  document.getElementById('sheetTitulo').textContent = 'Comandos e respostas';
+  document.getElementById('sheetSub').textContent = 'Palavras que o cliente manda e o que o bot responde';
+  renderSmsComandos();
+}
+
+function voltarSmsAtLista(){
+  document.getElementById('sheetTitulo').textContent = 'Atendimento SMS';
+  document.getElementById('sheetSub').textContent = 'Conversas com clientes por SMS';
+  sheetBody.innerHTML = '<div class="empty">carregando…</div>';
+  carregarSmsAtLista();
+}
+
+async function guardarSmsComandos(lista, pin){
+  const r = await enviarSmsApi('sms-conversas', { pin, acao: 'respostas', respostas: lista });
+  smsCmds = (r.respostas || lista).map(c => ({ ...c }));
+}
+
+function renderSmsComandos(){
+  if (sheetAtual !== 'smsat') return;
+  const itens = smsCmds.map(c => `
+    <div class="inat-item">
+      <div style="flex:1;min-width:0">
+        <div class="who">${esc((c.palavras || []).join(', '))}
+          <span class="badge">${c.modo === 'exato' ? 'exato' : 'contém'}</span>
+          ${c.humano ? '<span class="badge prep">avisa-me</span>' : ''}
+          ${c.ativo === false ? '<span class="badge">inativo</span>' : ''}</div>
+        <div class="meta">${esc(c.resposta)}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <button class="btn-wa" data-ed="${esc(c.id)}">Editar</button>
+        <button class="btn-wa del" data-del="${esc(c.id)}">Apagar</button>
+      </div>
+    </div>`).join('');
+
+  const ed = smsCmdEdit === null ? null : (smsCmds.find(c => c.id === smsCmdEdit) || {});
+  const form = ed === null ? '<button class="btn-main" id="btnCmdNovo">+ Novo comando</button>' : `
+    <div class="sec">${smsCmdEdit ? 'Editar comando' : 'Novo comando'}</div>
+    <label class="field">
+      <span>Palavras (separadas por vírgula)</span>
+      <input id="inpCmdPal" type="text" maxlength="200" value="${esc((ed.palavras || []).join(', '))}" placeholder="ex.: horario, aberto, abre" aria-label="Palavras">
+    </label>
+    <label class="field">
+      <span>Quando responder</span>
+      <select id="selCmdModo" aria-label="Modo">
+        <option value="contem" ${ed.modo !== 'exato' ? 'selected' : ''}>A mensagem contém a palavra</option>
+        <option value="exato" ${ed.modo === 'exato' ? 'selected' : ''}>A mensagem é exatamente a palavra</option>
+      </select>
+    </label>
+    <label class="field">
+      <span>Resposta (podes usar {nome}, {pagamento} e {tabela})</span>
+      <textarea class="sms-txt" id="txtCmdResp" maxlength="320" aria-label="Resposta">${esc(ed.resposta || '')}</textarea>
+    </label>
+    <div class="sms-cnt" id="cntCmdResp"></div>
+    <label class="toggle-linha"><input type="checkbox" id="chkCmdHumano" ${ed.humano ? 'checked' : ''}> Avisar-me para eu responder também</label>
+    <label class="toggle-linha"><input type="checkbox" id="chkCmdAtivo" ${ed.ativo === false ? '' : 'checked'}> Ativo</label>
+    <label class="field">
+      <span>PIN</span>
+      <input id="inpCmdPin" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN" aria-label="PIN">
+    </label>
+    <button class="btn-main" id="btnCmdGuardar">Guardar comando</button>
+    <div style="margin-top:10px;text-align:center"><button class="btn-wa" id="btnCmdCancelar">Cancelar</button></div>`;
+
+  sheetBody.innerHTML = `
+    <button class="btn-main btn-voltar" id="btnCmdVoltar">← Voltar ao atendimento</button>
+    ${itens ? '<div class="card">' + itens + '</div>' : '<div class="empty">Ainda não tens comandos</div>'}
+    ${form}
+    <div class="sec">Testar uma mensagem</div>
+    <label class="field">
+      <span>Escreve como se fosses o cliente</span>
+      <input id="inpCmdTeste" type="text" maxlength="160" placeholder="ex.: a que horas abrem?" aria-label="Testar">
+    </label>
+    <button class="btn-main" id="btnCmdTestar">Testar</button>
+    <div class="note" id="outCmdTeste"></div>
+    ${ed === null ? `<label class="field"><span>PIN (para apagar)</span><input id="inpCmdPin" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN" aria-label="PIN"></label>` : ''}
+    <p class="note">Cada palavra é comparada sem acentos e sem maiúsculas. "Exatamente" só responde se a mensagem for só aquela palavra; "contém" responde se a palavra aparecer em qualquer sítio (a mais comprida e as "exatas" têm prioridade). Dica: acentos fazem o SMS ficar mais caro (70 caracteres por SMS em vez de 160), por isso escreve as respostas sem acentos. Só funciona com as respostas automáticas ligadas.</p>`;
+
+  document.getElementById('btnCmdVoltar').addEventListener('click', voltarSmsAtLista);
+
+  const novo = document.getElementById('btnCmdNovo');
+  if (novo) novo.addEventListener('click', () => { smsCmdEdit = ''; renderSmsComandos(); });
+  sheetBody.querySelectorAll('[data-ed]').forEach(b => b.addEventListener('click', () => { smsCmdEdit = b.dataset.ed; renderSmsComandos(); }));
+  sheetBody.querySelectorAll('[data-del]').forEach(b => comConfirmacao(b, 'Apagar mesmo?', async () => {
+    const pinEl = document.getElementById('inpCmdPin');
+    const pin = pinEl ? pinEl.value : '';
+    if (!pin) { mostrarToast('Escreve o PIN em baixo para apagar'); return; }
+    try {
+      await guardarSmsComandos(smsCmds.filter(c => c.id !== b.dataset.del), pin);
+      mostrarToast('Comando apagado');
+      renderSmsComandos();
+    } catch (e) { mostrarToast('Não consegui apagar: ' + (e.message || e)); }
+  }));
+
+  if (ed !== null) {
+    const txt = document.getElementById('txtCmdResp');
+    const cnt = document.getElementById('cntCmdResp');
+    const contar = () => {
+      const inf = smsInfo(txt.value);
+      cnt.textContent = `${inf.n} caracteres · ${inf.partes} SMS` + (inf.uni ? ' · acentos reduzem o limite para 70 por SMS' : '');
+      cnt.classList.toggle('alerta', inf.uni || inf.partes > 1);
+    };
+    txt.addEventListener('input', contar); contar();
+
+    document.getElementById('btnCmdCancelar').addEventListener('click', () => { smsCmdEdit = null; renderSmsComandos(); });
+    const btn = document.getElementById('btnCmdGuardar');
+    btn.addEventListener('click', async () => {
+      const palavras = document.getElementById('inpCmdPal').value.split(',').map(x => x.trim()).filter(Boolean);
+      const resposta = txt.value.trim();
+      const pin = document.getElementById('inpCmdPin').value;
+      if (!palavras.length) { mostrarToast('Escreve pelo menos uma palavra'); return; }
+      if (!resposta) { mostrarToast('Escreve a resposta'); return; }
+      if (!pin) { mostrarToast('Escreve o PIN'); return; }
+      const novoCmd = {
+        id: smsCmdEdit || ('c' + Date.now().toString(36)),
+        palavras, resposta,
+        modo: document.getElementById('selCmdModo').value,
+        humano: document.getElementById('chkCmdHumano').checked,
+        ativo: document.getElementById('chkCmdAtivo').checked
+      };
+      const lista = smsCmdEdit ? smsCmds.map(c => c.id === smsCmdEdit ? novoCmd : c) : smsCmds.concat(novoCmd);
+      btn.disabled = true;
+      try {
+        await guardarSmsComandos(lista, pin);
+        mostrarToast('Comando guardado');
+        smsCmdEdit = null;
+        renderSmsComandos();
+      } catch (e) {
+        mostrarToast('Não consegui guardar: ' + (e.message || e));
+        btn.disabled = false;
+      }
+    });
+  }
+
+  document.getElementById('btnCmdTestar').addEventListener('click', async () => {
+    const t = document.getElementById('inpCmdTeste').value.trim();
+    const out = document.getElementById('outCmdTeste');
+    if (!t) { mostrarToast('Escreve uma mensagem'); return; }
+    out.textContent = 'a testar…';
+    try {
+      const res = await fetch(`${API_BASE}/api/sms-conversas?testar=${encodeURIComponent(t)}`);
+      const r = await res.json();
+      if (!res.ok || r.erro) throw new Error(r.erro || `HTTP ${res.status}`);
+      out.textContent = `${r.origem === 'comando' ? 'Comando teu' : 'Resposta do bot'}${r.humano ? ' (ficaria marcado "responder")' : ''}: ${r.resposta}`;
+    } catch (e) { out.textContent = 'Erro: ' + (e.message || e); }
+  });
+}
+
+/* ---- Avisar grupos (promoções) ---- */
+let gaGrupos = [];
+let gaSel = new Set();
+let gaMsg = '';
+let gaMarcar = true;
+let gaCanal = 'sms';      // 'sms' = SMS a cada membro · 'grupo' = mensagem publicada no grupo
+let gaPrev = null;        // prévia do SMS: quantos números receberiam
+let gaPrevSeq = 0;
+let gaPrevTimer = null;
+
+function abrirGruposAviso(){
+  abrirSheet('gruposaviso', 'Avisar grupos', 'Promoção para os membros dos teus grupos');
+  gaSel = new Set();
+  gaPrev = null;
+  carregarGruposAviso();
+}
+
+async function carregarGruposAviso(){
+  try {
+    const res = await fetch(`${API_BASE}/api/grupos-aviso`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const d = await res.json();
+    if (sheetAtual !== 'gruposaviso') return;
+    if (d.job && d.job.estado === 'enviando') {
+      renderGruposProgresso(d.job);
+      if (!filaTimer) filaTimer = setInterval(carregarGruposAviso, 3000);
+    } else {
+      clearInterval(filaTimer); filaTimer = null;
+      renderGruposAviso(d);
+    }
+  } catch (e) {
+    if (sheetAtual === 'gruposaviso') sheetBody.innerHTML = `<div class="empty">Erro: ${esc(e.message || e)}</div>`;
+  }
+}
+
+function renderGruposProgresso(j){
+  const sms = j.canal === 'sms';
+  const feitos = j.enviados + j.falhas;
+  const pct = j.total ? Math.round(feitos / j.total * 100) : 0;
+  sheetBody.innerHTML = `
+    <div class="card">
+      <div class="rec-sub">${sms ? 'SMS aos membros dos grupos' : 'Aviso aos grupos'}${!sms && j.marcarTodos ? ' · a marcar todos' : ''}</div>
+      <div class="rec-tot">A enviar… ${esc(feitos)} de ${esc(j.total)}</div>
+      <div class="prog-bar"><i style="width:${pct}%"></i></div>
+      <div class="rec-sub">${esc(j.enviados)} enviados · ${esc(j.falhas)} falhas · ${esc(j.restantes)} por enviar</div>
+      ${j.aEsperarFila ? '<div class="rec-sub" style="color:var(--amber);margin-top:6px">A dar prioridade aos pedidos…</div>' : ''}
+      ${j.atual ? `<div class="rec-sub" style="margin-top:6px">${sms ? 'Grupo' : 'Agora'}: ${esc(j.atual)}</div>` : ''}
+      ${j.ultimoErro ? `<div class="rec-sub" style="color:var(--red);margin-top:6px">Último erro: ${esc(j.ultimoErro)}</div>` : ''}
+    </div>
+    <button class="btn-main danger solo" id="btnPararGrupos">Parar envio</button>
+    <p class="note">${sms
+      ? 'Há uma pausa entre cada SMS e os pedidos têm prioridade: o envio espera enquanto o telefone trata de pedidos. Podes fechar esta janela: o envio continua no bot. Os SMS já enviados não se desfazem.'
+      : 'Há uma pausa de 8 a 15 segundos entre grupos. Podes fechar esta janela: o envio continua no bot. As mensagens já enviadas não se desfazem.'}</p>`;
+  document.getElementById('btnPararGrupos').addEventListener('click', async () => {
+    try { await enviarSmsApi('grupos-aviso', { acao: 'parar' }); mostrarToast('Envio parado'); carregarGruposAviso(); }
+    catch (e) { mostrarToast('Não consegui parar: ' + (e.message || e)); }
+  });
+}
+
+function renderGruposAviso(d){
+  gaGrupos = d.grupos || [];
+  const ativos = gaGrupos.filter(g => g.ativo);
+  gaSel = new Set([...gaSel].filter(j => ativos.some(g => g.jid === j)));
+  const porSms = gaCanal === 'sms';
+
+  let ultimo = '';
+  if (d.job) {
+    const j = d.job;
+    const est = j.estado === 'concluido' ? 'concluído' : j.estado;
+    const unid = j.canal === 'sms' ? 'SMS' : 'grupos';
+    ultimo = `<div class="note" style="margin:0 0 10px">Último aviso: ${esc(est)} · ${esc(j.enviados)} de ${esc(j.total)} ${unid}${j.falhas ? ', ' + esc(j.falhas) + ' falhas' : ''}${j.ultimoErro ? ' (' + esc(j.ultimoErro) + ')' : ''}.</div>`;
+  }
+
+  const linhas = gaGrupos.map(g => `
+    <label class="inat-item" ${g.ativo ? '' : 'style="opacity:.5"'}>
+      <div>
+        <div class="who">${esc(g.nome)}</div>
+        <div class="meta">${g.membros !== null && g.membros !== undefined ? esc(g.membros) + ' membros' : 'membros: —'}${g.ativo ? '' : ' · plano inativo'}</div>
+      </div>
+      <input class="chk" type="checkbox" data-j="${esc(g.jid)}" ${g.ativo ? '' : 'disabled'} ${gaSel.has(g.jid) ? 'checked' : ''} aria-label="Enviar a ${esc(g.nome)}">
+    </label>`).join('');
+
+  sheetBody.innerHTML = `
+    ${d.online ? '' : '<div class="note" style="color:var(--amber);margin:0 0 10px">O WhatsApp do bot não está ligado agora: não dá para enviar.</div>'}
+    ${ultimo}
+    <div class="sec">Como enviar</div>
+    <div class="chips" role="group" aria-label="Como enviar">
+      <button class="chip ${porSms ? 'sel' : ''}" data-c="sms" aria-pressed="${porSms}">SMS a cada membro</button>
+      <button class="chip ${porSms ? '' : 'sel'}" data-c="grupo" aria-pressed="${!porSms}">Mensagem no grupo</button>
+    </div>
+    <div class="sec">Grupos</div>
+    ${gaGrupos.length ? '<div class="card">' + linhas + '</div>' : '<div class="empty">Ainda não há grupos registados no bot</div>'}
+    ${ativos.length ? '<div style="margin:8px 0 12px"><button class="btn-wa" id="btnGaTodos">Selecionar todos / nenhum</button></div>' : ''}
+
+    <label class="field">
+      <span>${porSms ? 'Mensagem do SMS ({nome} vira o primeiro nome de quem já comprou; para os outros sai sem nome)' : 'Mensagem (podes usar *negrito* e _itálico_)'}</span>
+      <textarea class="sms-txt" id="txtGaMsg" maxlength="${porSms ? 320 : 1000}" placeholder="${porSms ? 'ex.: Megas Express: PROMO de hoje, 1GB por 15MT. Compre ja!' : 'ex.: 🔥 PROMOÇÃO de hoje: 1GB por 15MT! Compra já.'}" aria-label="Mensagem">${esc(gaMsg)}</textarea>
+    </label>
+    <div class="sms-cnt" id="cntGaMsg"></div>
+    ${porSms ? '' : `<label class="toggle-linha">
+      <input class="chk" type="checkbox" id="chkGaMarcar" ${gaMarcar ? 'checked' : ''}>
+      <span>Marcar todos os membros (todos recebem a notificação)</span>
+    </label>`}
+    <div class="note" id="txtGaResumo" style="margin:10px 0 0"></div>
+
+    <label class="field" style="margin-top:12px">
+      <span>PIN do dono</span>
+      <input id="inpGaPin" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN" aria-label="PIN">
+    </label>
+    <button class="btn-main" id="btnGaEnviar">${porSms ? 'Enviar SMS aos membros' : 'Enviar aos grupos'}</button>
+    <p class="note">${porSms
+      ? 'Cada membro com número de Moçambique recebe um SMS, um de cada vez, com pausa entre eles. Os SMS saem do chip do bot e gastam o saldo dele. Ninguém é saltado por ter recebido outro SMS há pouco: vão todos. Só ficam de fora os membros cujo número o WhatsApp esconde e os de fora de Moçambique. Identifica-te na mensagem (ex.: "Megas Express:") para não pensarem que é spam.'
+      : 'A mensagem é publicada em cada grupo escolhido, com 8 a 15 segundos de pausa entre grupos. Só aparecem os grupos onde o plano do bot está ativo. Evita repetir avisos muitas vezes no mesmo dia.'}</p>`;
+
+  const txt = document.getElementById('txtGaMsg');
+  const marcar = document.getElementById('chkGaMarcar');
+  const btn = document.getElementById('btnGaEnviar');
+  const max = porSms ? 320 : 1000;
+  if (txt.value.length > max) txt.value = txt.value.slice(0, max);
+
+  function textoPrevia(){
+    if (!gaPrev) return 'A contar os números…';
+    if (gaPrev.erro) return 'Não consegui contar: ' + gaPrev.erro;
+    const p = gaPrev;
+    const extras = [];
+    if (p.semNumero) extras.push(`${p.semNumero} sem número de Moçambique visível`);
+    if (p.duplicados) extras.push(`${p.duplicados} repetidos entre grupos`);
+    let t = `${p.total} ${p.total === 1 ? 'número receberá' : 'números receberão'} SMS · cerca de ${p.minutos} min`;
+    if (extras.length) t += ' (de fora: ' + extras.join(', ') + ')';
+    if (p.total > p.maximo) t += `. Máximo ${p.maximo} por envio: escolhe menos grupos.`;
+    return t;
+  }
+
+  function atualizar(){
+    gaMsg = txt.value;
+    if (marcar) gaMarcar = marcar.checked;
+    const cnt = document.getElementById('cntGaMsg');
+    let c = `${txt.value.length} / ${max} caracteres`;
+    if (porSms && /[^\x00-\x7F]/.test(txt.value)) c += ' · acentos e emojis podem partir o SMS em mais partes';
+    cnt.textContent = c;
+    cnt.classList.toggle('alerta', porSms && /[^\x00-\x7F]/.test(txt.value));
+
+    const n = gaSel.size;
+    const resumo = document.getElementById('txtGaResumo');
+    let podeEnviar = n > 0 && txt.value.trim() && d.online;
+    if (!n) {
+      resumo.textContent = 'Escolhe pelo menos um grupo';
+    } else if (porSms) {
+      resumo.textContent = textoPrevia();
+      if (!gaPrev || gaPrev.erro || gaPrev.total < 1 || gaPrev.total > gaPrev.maximo) podeEnviar = false;
+    } else {
+      const membros = gaGrupos.filter(g => gaSel.has(g.jid)).reduce((a, g) => a + (g.membros || 0), 0);
+      resumo.textContent = `${n} ${n === 1 ? 'grupo escolhido' : 'grupos escolhidos'}${membros ? ' · cerca de ' + membros + ' membros' : ''}`;
+    }
+    btn.disabled = !podeEnviar;
+  }
+
+  function pedirPrevia(){
+    clearTimeout(gaPrevTimer);
+    gaPrev = null;
+    if (!porSms || !gaSel.size || !d.online) { atualizar(); return; }
+    atualizar();
+    const minha = ++gaPrevSeq;
+    gaPrevTimer = setTimeout(async () => {
+      try {
+        const r = await enviarSmsApi('grupos-aviso', { acao: 'previa', grupos: [...gaSel] });
+        if (minha !== gaPrevSeq || sheetAtual !== 'gruposaviso') return;
+        gaPrev = r;
+      } catch (e) {
+        if (minha !== gaPrevSeq || sheetAtual !== 'gruposaviso') return;
+        gaPrev = { erro: e.message || String(e) };
+      }
+      atualizar();
+    }, 400);
+  }
+
+  txt.addEventListener('input', atualizar);
+  if (marcar) marcar.addEventListener('change', atualizar);
+  sheetBody.querySelectorAll('.chip[data-c]').forEach(c => c.addEventListener('click', () => {
+    if (gaCanal === c.dataset.c) return;
+    gaMsg = txt.value;
+    gaCanal = c.dataset.c;
+    gaPrev = null;
+    renderGruposAviso(d);
+  }));
+  sheetBody.querySelectorAll('.chk[data-j]').forEach(c => c.addEventListener('change', () => {
+    if (c.checked) gaSel.add(c.dataset.j); else gaSel.delete(c.dataset.j);
+    pedirPrevia();
+  }));
+  const bt = document.getElementById('btnGaTodos');
+  if (bt) bt.addEventListener('click', () => {
+    const todos = gaSel.size === ativos.length;
+    gaSel = new Set(todos ? [] : ativos.map(g => g.jid));
+    sheetBody.querySelectorAll('.chk[data-j]').forEach(c => { c.checked = gaSel.has(c.dataset.j); });
+    pedirPrevia();
+  });
+  pedirPrevia();
+
+  comConfirmacao(btn, 'Toca outra vez para enviar', async () => {
+    const pin = document.getElementById('inpGaPin').value;
+    if (!pin) { mostrarToast('Escreve o PIN'); return; }
+    btn.disabled = true;
+    try {
+      const r = await enviarSmsApi('grupos-aviso', {
+        pin, acao: 'enviar', canal: gaCanal, grupos: [...gaSel], mensagem: txt.value,
+        marcarTodos: marcar ? marcar.checked : false
+      });
+      mostrarToast(porSms
+        ? `A enviar SMS a ${r.total} ${r.total === 1 ? 'número' : 'números'}`
+        : `A enviar a ${r.total} ${r.total === 1 ? 'grupo' : 'grupos'}`);
+      gaMsg = ''; gaSel = new Set(); gaPrev = null;
+      carregarGruposAviso();
+    } catch (e) {
+      mostrarToast('Não consegui enviar: ' + (e.message || e));
+      btn.disabled = false;
+    }
+  });
+}
+
+function carregarTudo(){
+  carregarStatus();
+  carregarResumo();
+  carregarEventos();
+  carregarLucro();
+  carregarAlertas();
+  carregarSemana();
+  atualizarBadgeSms();
+}
+
+carregarTudo();
+setInterval(carregarTudo, 15000);
+</script>
+
+</body>
+</html>
